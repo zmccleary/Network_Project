@@ -269,5 +269,5 @@ git tag -a hw0 [commit]
 git push origin --tags
 ```
 
-> :warning: You only get one change to tag.
+> :warning: You only get one change to tags.
 > Make sure all your files are committed and push to the gitlab server before you tag. 
