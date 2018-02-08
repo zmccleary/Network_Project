@@ -1,6 +1,6 @@
 # CSE 392 - Spring 2018 - Homework 1
 
-## **Client Due in Lecture on Thursday 02/21/18**
+## **Client Due in Lecture on Thursday 02/22/18**
 ## **Server Due on Sunday 03/04/18 @ 11:59PM**
 
 # Introduction
