@@ -182,12 +182,12 @@ Server->Bob: EDNE Jim\\r\\n\\r\\n
 Bob->Server: TO Alice <message>\\r\\n\\r\\n
 Server->Bob: OT\\r\\n\\r\\n
 Server->Alice: FROM Bob <message>\\r\\n\\r\\n
-Alice->Server: MROF\\r\\n\\r\\n
+Alice->Server: MORF\\r\\n\\r\\n
 note right of Alice: Display message
 Alice->Server: TO Bob <message>\\r\\n\\r\\n
 Server->Alice: OT\\r\\n\\r\\n
 Server->Bob: FROM Alice <message>\\r\\n\\r\\n
-Bob->Server: MROF\\r\\n\\r\\n
+Bob->Server: MORF\\r\\n\\r\\n
 note left of Bob: Display message
 -->
 
