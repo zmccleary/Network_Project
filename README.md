@@ -195,7 +195,7 @@ Server->Bob: EDNE Jim\\r\\n\\r\\n
 
 ![Message Protocol](imgs/messageProtocol.png)
 
-If th user does not exist you should implement the following protocol.
+If the user does not exist you should implement the following protocol.
 
 ![User DNE Protocol](imgs/userDoesNotExistProtocol.png)
 
