@@ -172,26 +172,32 @@ Server->Client: UTSIL <name1> <name2> <name3> ... <nameN>\\r\\n\\r\\n
 ## Typical Messaging Procedure
 
 Below is a simple exchange between two logged in clients.
-When one of the clients tries to contact a client that does not exist, the server responds with an `EDNE` message.
+When one of the clients tries to contact a client that does not exist, the server responds with an `EDNE` message. **NOTE THE ORDER OF THE MESSAGES**.
+The `TO` is sent to the server, `FROM` is sent to the destination client, destination client responds with `MORF` **THEN** the server replies to the orignal client with an `OT` message.
+**Note** the usernames being filled in to each corresponding message.
 
 <!--
 Title Message Protocol
+Bob->Server: TO Alice <message>\\r\\n\\r\\n
+Server->Alice: FROM Bob <message>\\r\\n\\r\\n
+Alice->Server: MORF Bob\\r\\n\\r\\n
+Server->Bob: OT Alice\\r\\n\\r\\n
+Alice->Server: TO Bob <message>\\r\\n\\r\\n
+Server->Bob: FROM Alice <message>\\r\\n\\r\\n
+Bob->Server: MORF Alice\\r\\n\\r\\n
+Server->Alice: OT Bob\\r\\n\\r\\n
+
+Title User Does Not Exist Protocol
 Bob->Server: TO Jim <message>\\r\\n\\r\\n
 note right of Server: Jim does not exist
 Server->Bob: EDNE Jim\\r\\n\\r\\n
-Bob->Server: TO Alice <message>\\r\\n\\r\\n
-Server->Bob: OT\\r\\n\\r\\n
-Server->Alice: FROM Bob <message>\\r\\n\\r\\n
-Alice->Server: MORF\\r\\n\\r\\n
-note right of Alice: Display message
-Alice->Server: TO Bob <message>\\r\\n\\r\\n
-Server->Alice: OT\\r\\n\\r\\n
-Server->Bob: FROM Alice <message>\\r\\n\\r\\n
-Bob->Server: MORF\\r\\n\\r\\n
-note left of Bob: Display message
 -->
 
 ![Message Protocol](imgs/messageProtocol.png)
+
+If th user does not exist you should implement the following protocol.
+
+![User DNE Protocol](imgs/userDoesNotExistProtocol.png)
 
 ## Logout Procedure
 
