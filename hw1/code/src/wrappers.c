@@ -1,5 +1,7 @@
 #include <wrappers.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
 void client_error(char *s){
 	perror(s);
 	exit(EXIT_SUCCESS);
@@ -33,7 +35,7 @@ int Write(int fd, const void *buf, int count){
 	int n_written = 0;
 	write_loop:
 	while(count > 0){
-		if((n_written = write(fd, const void *buf, int count)) == -1){
+		if((n_written = write(fd, buf, count)) == -1){
 			if(errno == EINTR){
 				/*write returns EINTR, restart the read*/
 				goto write_loop; 
@@ -42,7 +44,7 @@ int Write(int fd, const void *buf, int count){
 				client_error("Write failure.");
 			}
 		}
-		count += n_written;
+		count -= n_written;
 		
 	}
 	return 0;
