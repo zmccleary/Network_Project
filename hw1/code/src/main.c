@@ -16,9 +16,9 @@ int main(int argc, char **argv){
 	int sockfd;
     char buf[BUFSIZE];
     char **conn_info = calloc(3, sizeof(char *));
-
+    char verbose = 0;
     //Read in command line arguments
-	if(parse_args(argc, argv, conn_info) == -1){
+	if((verbose = parse_args(argc, argv, conn_info)) == -1){
 		return EXIT_FAILURE;
 	}
 	char * cli_name = *conn_info;

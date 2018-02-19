@@ -41,5 +41,5 @@ char parse_args(int argc, char * const argv[], char * conn_info[]){
 
 	}
 	
-	return 0;
+	return opcode;
 }
