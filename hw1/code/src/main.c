@@ -13,9 +13,7 @@
 
 int main(int argc, char **argv){
 	
-	int sockfd, n;
-    struct sockaddr_in serveraddr;
-    struct hostent *server;
+	int sockfd;
     char buf[BUFSIZE];
     char **conn_info = calloc(3, sizeof(char *));
 
@@ -30,11 +28,13 @@ int main(int argc, char **argv){
     //Get address info using host and port name
     struct addrinfo *info, *curadd;
     int air = getaddrinfo(hostname, *(conn_info+2), NULL, &info);
+    if(air !=0)
+        client_error("ERROR: getaddrinfo\n");
 
     //Check returned addresses, try each until a successful connection occurs
-    for(curadd = info; curadd != NULL; curadd = curadd->next)
+    for(curadd = info; curadd != NULL; curadd = curadd->ai_next)
     {
-        sockfd = socket(info->ai_family, info->ai_socktype, ai->protocol);
+        sockfd = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
         if(sockfd == -1)
             continue;
 
@@ -46,10 +46,9 @@ int main(int argc, char **argv){
 
     //If curadd is NULL after this loop, no address found. Send error message
     if(curadd == NULL)
-        client_error("Could not connect to host %s on port %d\n", hostname, portno);
+        client_error("Could not connect to host %s on port %d\n");
 
-    freeadddrinfo(info);
+    freeaddrinfo(info);
 
-    printf("Sucessful!");
     
 }
