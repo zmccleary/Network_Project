@@ -24,8 +24,7 @@ int main(int argc, char **argv)
 	atexit(exit_cleanup);
 	char verbose = 0;
 
-    rs_buf * buf = (rs_buf *)malloc(sizeof(struct rs_buf));
-    rs_buf * read_buf = 
+    rs_buf * buf = (rs_buf *)malloc(sizeof(rs_buf));
     init_rsbuf(buf, BUFSIZE);
     
     
@@ -40,6 +39,7 @@ int main(int argc, char **argv)
 	}
 	char * cli_name = *conn_info;
     char * hostname = *(conn_info+1);
+    int portno = atoi(*(conn_info+2));
 
     if(strlen(cli_name) > 10)
     	client_error("User name should be maximum 10 characters.");
@@ -66,7 +66,11 @@ int main(int argc, char **argv)
 
     //If curadd is NULL after this loop, no address found. Send error message
     if(curadd == NULL)
-        client_error("Could not connect to host %s on port %d\n");
+    {
+        printf("Could not connect to host %s on port %d\n", hostname, portno);
+        exit(0);
+    }
+    printf("Succesful connection! Login is being attempted...\n");
 	
 
 

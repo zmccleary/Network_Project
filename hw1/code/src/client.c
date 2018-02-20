@@ -19,8 +19,7 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
     flush_rsbuf(buf);
     if (Read(sockfd, buf, buf->size, state) < 0){
         //Garbage termination function here
-        
-        return -1;
+        client_error("ERROR unable to recognize message");
     }
     
     /*
@@ -32,22 +31,18 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
      *
      * We parse the input and then handle the options accordingly
      */
-    char * token = strtok(buf->buffer, " ");
+    char * bufcopy = (char *)calloc(buf->size, sizeof(char));
+    strcpy(bufcopy, buf->buffer); 
+    char * token = strtok(bufcopy, " ");
     int tok_len = 0;
-    if(strcmp(token, "FROM")){
+    if(strcmp(token, "FROM") == 0){
 
     }
-    else if (strcmp(token, "UOFF")){
+    else if (strcmp(token, "UOFF") == 0){
     
     }
     else{
-        if(state == LOGIN1){
-            //If the ack is not recieved, quit
-            if(!strcmp(token, "U2EM\r\n\r\n"))
-                return -1;
-        }
-        else if (state == LOGIN2){
-
+        if(state == LOGIN1 || state == LOGIN2){
         }
         else if (state == LIST_USER){
         	list_u(token, tok_len, &terminator_read);
@@ -67,6 +62,8 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
         }
 
     }
+    
+    free(bufcopy);
 
     return 0;
 
@@ -106,26 +103,29 @@ char parse_args(int argc, char * const argv[], char * conn_info[]){
 	
 	return opcode;
 }
+
+//Performs handshake and logs user into the server
 int login(int sockfd, char *username, rs_buf * buf){
 	
-    char * loginmsg = "ME2U\r\n\r\n";
+    char * loginmsg = (char *)calloc(100, sizeof(char));
+    sprintf(loginmsg, "ME2U\r\n\r\n");
 
     //Write to the socket and wait for a read
     Write(sockfd, loginmsg, strlen(loginmsg));
 
     handle_read(sockfd, buf, LOGIN1);
 
-    if(!strcmp(buf->buffer, "U2EM\r\n\r\n"))
-        client_error("Login attempt failed.\n");
+    if(strcmp(buf->buffer, "U2EM\r\n\r\n")!= 0)
+        goto bad;
 
-    loginmsg = "IAM ";
-    strcat(loginmsg, username);
-    strcat(loginmsg, "\r\n\r\n");
+    //Write name to the server and wait fr ack
+    sprintf(loginmsg, "IAM %s\r\n\r\n", username);
 
     Write(sockfd, loginmsg, strlen(loginmsg));
 
     handle_read(sockfd, buf, LOGIN2);
     
+<<<<<<< HEAD
     if(strcmp(buf->buffer, "ETAKEN\r\n\r\n")){
 
     }
@@ -135,11 +135,34 @@ int login(int sockfd, char *username, rs_buf * buf){
 
 
 
+=======
+    if(strcmp(buf->buffer, "ETAKEN\r\n\r\n") == 0)
+        client_error("Username taken\n");
+    else if(strcmp(buf->buffer, "MAI\r\n\r\n") != 0)
+        goto bad;
+>>>>>>> f0f055a2013660d6a1e84eb0804d08137174a299
 
+    //Try to read message of the day
+    handle_read(sockfd, buf, MOTD);
 
+    if(strncmp(buf->buffer, "MOTD", 4) == 0)
+        printMOTD(buf);
+    else
+        goto bad;
 
+    free(loginmsg);
 	return 0;
+bad:
+    client_error("Login attempt failed");
+    free(loginmsg);
+    return -1;
+}
 
+void printMOTD(rs_buf * buf){
+    char del[] = " ";
+    char * token = strtok(buf->buffer, del);
+    token = strtok(NULL, "\r");
+    printf("Message of the day: %s\n\nYou are now connected to the server: \n", token);
 }
 
 //Initialize an rs_buf struct
@@ -156,13 +179,7 @@ void realloc_rsbuf(rs_buf * buf, int bufsize){
 void cleanup_rsbuf(rs_buf * buf){
     free(buf->buffer);
 }
-
-int list_u(char * token, int tok_len, int *terminator_read){
-	rs_buf out_buf;
-	out_buf.buffer = calloc(BUFSIZE, sizeof(char));
-	out_buf.size = BUFSIZE;
-	int out_ind = 0;
-
+int list_u(char * token, int tok_len, int terminator_read){
 	if(strcmp(token, "UTSIL"))
         		return -1; //first value of token read should be UTSIL or else garbage
         	while((token = strtok(NULL, " ")) != NULL){
@@ -201,4 +218,6 @@ int list_u(char * token, int tok_len, int *terminator_read){
 
 void flush_rsbuf(rs_buf * buf){
     memset(buf->buffer, 0, buf->size);
+<<<<<<< HEAD
 }
+
