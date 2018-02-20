@@ -78,7 +78,11 @@ int Read(int fd, void *buf, size_t count, ChatState_t state)
 	int nread = 0;
 	int total_read = 0;
 	char *template;
-	
+
+	int temp_len;
+	int buf_len;
+	int min = 0;
+
 	switch(state){
 		case LOGIN:
 			template = "U2EM\r\n\r\n"; //read should only be called for server response
@@ -97,6 +101,9 @@ int Read(int fd, void *buf, size_t count, ChatState_t state)
 		default:
 			client_error("Not in a valid state!");
 	}
+
+	temp_len = strlen(template);
+
 	while(count > 0)
 	{
 		if((nread = read(fd, buf, count)) == -1)
@@ -110,7 +117,16 @@ int Read(int fd, void *buf, size_t count, ChatState_t state)
 		if(nread == 0) //EOF
 			return total_read;
 
+		/*At this point, we have some bytes in buf. 
+		*Parse the buffer to make sure that it starts with template.
+		*/
+		buf_len = strlen(buf);
 
+		min = buf_len < temp_len ? buf_len : temp_len;
+
+		if(!strncmp(buf, template, min)){
+			return -1; //buffer is not prefixed in valid way, return error
+		}
 
 		count -= nread;
 		total_read += nread;
