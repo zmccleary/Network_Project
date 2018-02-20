@@ -52,7 +52,7 @@ int login(int sockfd, char *username, char * buf){
 	//int fds = 0;
 	FD_ZERO(&read);
 	FD_ZERO(&write);
-	FD_SET(sockfd, &read);
+	//FD_SET(sockfd, &read);
 	FD_SET(sockfd, &write);
 	time.tv_sec = 45;
 	//fds = 
@@ -65,6 +65,7 @@ int login(int sockfd, char *username, char * buf){
 
 	if(FD_ISSET(sockfd, &write)){
 		//do write operation
+		Write(sockfd, "ME2U\r\n\r\n", sizeof(char)*8);
 	}
 
 

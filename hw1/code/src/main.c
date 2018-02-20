@@ -39,6 +39,9 @@ int main(int argc, char **argv)
 	}
 	char * cli_name = *conn_info;
     char * hostname = *(conn_info+1);
+
+    if(strlen(cli_name) > 10)
+    	client_error("User name should be maximum 10 characters.");
     
 
     //Get address info using host and port name
