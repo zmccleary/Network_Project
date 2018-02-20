@@ -85,7 +85,8 @@ int Read(int fd, rs_buf *buf, size_t buf_size,  ChatState_t state)
 	int temp_len;
 	int min = 0;
 
-	switch(state){
+	//Set the template for the header of the recieved message
+    switch(state){
 		case LOGIN1:
 			template = "U2EM"; //read should only be called for server response
 			break;
@@ -104,12 +105,16 @@ int Read(int fd, rs_buf *buf, size_t buf_size,  ChatState_t state)
 		case LOGOUT:
 			template = "EYB";
 			break;
+        case DEFAULT:
+            template = "FROM";
+            break;
 		default:
 			client_error("Not in a valid state!");
 	}
 
 	temp_len = strlen(template);
     char * totalbuf = (char *)calloc(buf->size, sizeof(char));
+    //While the 2x carraige return is not read, loop over reading the input
 	while(strstr(totalbuf, "\r\n\r\n") == NULL)
 	{
 		if((nread = read(fd, buf->buffer, 1)) == -1)

@@ -19,7 +19,8 @@ typedef enum{
     MOTD,
     LIST_USER,
     MESSAGE_TO,
-    LOGOUT
+    LOGOUT,
+    DEFAULT
 } ChatState_t;
 
 //Client based functions

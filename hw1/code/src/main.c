@@ -106,7 +106,10 @@ int main(int argc, char **argv)
                 listusers(sockfd, buf);
             else if(strncmp(buf->buffer, "/chat", 5) == 0){
                 //get to and msg, then call:
-                //chat(sockfd, buf, to msg)
+                char * to = strtok(buf->buffer, " ");
+                to = strtok(NULL, " ");
+                char * msg = strtok(NULL, "\n");
+                chat(sockfd, buf, to, msg);
             }
             else
             {
@@ -118,7 +121,7 @@ int main(int argc, char **argv)
 
     	if(FD_ISSET(sockfd, &read)){
     		//something to be read from server socket
-    		
+    	    handle_read(sockfd, buf, DEFAULT);	
     	}
 
     	if(FD_ISSET(sockfd,&write)){
