@@ -1,6 +1,7 @@
 #include <client.h>
 #include <stdio.h>
 #include <string.h>
+#include <wrappers.h>
 
 const char* cli_usage = "./client [-hv] NAME SERVER_IP SERVER_PORT\n"
                     "-h                         Displays this help menu, and returns EXIT_SUCCESS.\n"
@@ -21,7 +22,7 @@ char parse_args(int argc, char * const argv[], char * conn_info[]){
 	if(!strcmp(argv[arg_ind], "-h"))
 	{
 		printf("%s", cli_usage);
-		return 0; //return 0 to tell main function that program is printing usage info and exit 
+		return 2; //return 2 to tell main function that program is printing usage info and exit 
 	}
 
 	if(!strcmp(argv[arg_ind], "-v"))
@@ -43,3 +44,40 @@ char parse_args(int argc, char * const argv[], char * conn_info[]){
 	
 	return opcode;
 }
+int login(int sockfd, char *username, char * buf){
+	
+	fd_set read, write;
+	struct timeval time;
+
+	//int fds = 0;
+	FD_ZERO(&read);
+	FD_ZERO(&write);
+	FD_SET(sockfd, &read);
+	FD_SET(sockfd, &write);
+	time.tv_sec = 45;
+	//fds = 
+
+	Select(sockfd, &read, &write, NULL, &time);
+
+	if(FD_ISSET(sockfd, &read)){
+		//do read operation
+	}
+
+	if(FD_ISSET(sockfd, &write)){
+		//do write operation
+	}
+
+
+
+
+
+
+
+
+
+
+	return 0;
+
+}
+
+

@@ -49,3 +49,50 @@ int Write(int fd, const void *buf, int count){
 	}
 	return 0;
 }
+
+int Connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen){
+	int result = 0;
+	force_connect:
+		if((result = connect(sockfd, addr, addrlen)) == -1){
+			if(errno == EINTR)
+				goto force_connect;
+			client_error("Failure to connect to server.");
+		}
+
+		return result;
+}
+
+int Getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)
+{
+	int result = 0;
+
+	if((result = getaddrinfo(node, service, hints, res)) == -1){
+		client_error("ERROR: getaddrinfo\n");
+	}
+
+	return result;
+}
+
+int Read(int fd, void *buf, size_t count)
+{
+	int nread = 0;
+	int total_read = 0;
+	while(count > 0)
+	{
+		if((nread = read(fd, buf, count)) == -1)
+		{
+			if(errno == EINTR)
+				continue;
+			else
+				client_error("Unable to read bytes from buffer.");
+		}
+
+		if(nread == 0) //EOF
+			return total_read;
+
+		count -= nread;
+		total_read += nread;
+	}
+
+	return total_read;
+}
