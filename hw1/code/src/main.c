@@ -116,6 +116,6 @@ int main(int argc, char **argv)
     freeaddrinfo(info);
     return 0;
 
-    
+    logout(sockfd, buf);    
 }
 

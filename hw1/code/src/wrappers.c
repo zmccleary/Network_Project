@@ -4,8 +4,8 @@
 #include <errno.h>
 #include <string.h>
 void client_error(char *s){
-	perror(s);
-	exit(0);
+    fprintf(stderr, "%s\n", s);
+	exit(EXIT_SUCCESS);
 }
 
 int Socket(int domain, int type, int protocol){

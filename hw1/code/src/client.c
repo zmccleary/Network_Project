@@ -14,12 +14,11 @@ const char* cli_usage = "./client [-hv] NAME SERVER_IP SERVER_PORT\n"
 
 int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
     
-    int terminator_read = 0; //keep track of state when \r\n\r\n is read
     //Read from the socket into buf, check for garbage message`
     flush_rsbuf(buf);
     if (Read(sockfd, buf, buf->size, state) < 0){
         //Garbage termination function here
-        client_error("ERROR unable to recognize message");
+        client_error("ERROR: unable to recognize message");
     }
     
     /*
@@ -45,7 +44,11 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
         if(state == LOGIN1 || state == LOGIN2){
         }
         else if (state == LIST_USER){
+<<<<<<< HEAD
         	list_u(token, tok_len, &terminator_read);
+=======
+        	list_u(token, tok_len);
+>>>>>>> 966ddee23d8ae5e84d5dc86fa1b372828a0d8205
             //Handle list user
             if(!terminator_read){
             	flush_rsbuf(buf);
@@ -55,7 +58,7 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
             //Handle message to
         }
         else if (state == LOGOUT){
-            //Handle logoff
+            //Handle logoff :: do nothing
         }
         else{
             //Garbage termination function
@@ -131,7 +134,7 @@ int login(int sockfd, char *username, rs_buf * buf){
 
     
     if(strcmp(buf->buffer, "ETAKEN\r\n\r\n") == 0)
-        client_error("Username taken\n");
+        client_error("ERROR: Username taken\n");
     else if(strcmp(buf->buffer, "MAI\r\n\r\n") != 0)
         goto bad;
 
@@ -148,16 +151,32 @@ int login(int sockfd, char *username, rs_buf * buf){
     flush_rsbuf(buf);
 	return 0;
 bad:
-    client_error("Login attempt failed");
+    client_error("ERROR: Login attempt failed");
     free(loginmsg);
     return -1;
 }
 
+//Prints the MOTD from the server to client stdout
 void printMOTD(rs_buf * buf){
     char del[] = " ";
     char * token = strtok(buf->buffer, del);
     token = strtok(NULL, "\r");
     printf("Message of the day: %s\n\nYou are now connected to the server: \n", token);
+}
+
+//Logs out from the server
+int logout(int sockfd, rs_buf * buf){
+    
+    //Print BYE to the server and wait for EYB
+    char * logoutmsg = "BYE\r\n\r\n";
+    Write(sockfd, logoutmsg, strlen(logoutmsg));
+    handle_read(sockfd, buf, LOGOUT);
+    cleanup_rsbuf(buf);
+    free(buf);
+    printf("Logging out of the server.\n");
+    exit(EXIT_SUCCESS);
+
+
 }
 
 //Initialize an rs_buf struct
@@ -180,8 +199,15 @@ int list_u(char * token, int tok_len, int *terminator_read){
 	out_buf.buffer = calloc(BUFSIZE,sizeof(char));
 	out_buf.size = BUFSIZE;
 
+/*<<<<<<< HEAD
 	int out_ind = 0;
 	if(strcmp(token, "UTSIL"))
+=======
+*/
+//int list_u(char * token, int tok_len){
+	int terminator_read = 0;
+    if(strcmp(token, "UTSIL"))
+//>>>>>>> 966ddee23d8ae5e84d5dc86fa1b372828a0d8205
         		return -1; //first value of token read should be UTSIL or else garbage
         	while((token = strtok(NULL, " ")) != NULL){
         		

@@ -22,16 +22,22 @@ typedef enum{
     LOGOUT
 } ChatState_t;
 
-
+//Client based functions
 int handle_read(int sockfd, rs_buf * buf, ChatState_t state);
 char parse_args(int argc, char * const argv[], char * conn_info[]);
 int login(int sockfd, char *username, rs_buf *buf);
 void printMOTD(rs_buf *buf);
+int list_u(char * token, int tok_len);
+int logout(int sockfd, rs_buf *buf); 
+
+//Buffer functions
 void init_rsbuf(rs_buf * buf, int bufsize);
 void realloc_rsbuf(rs_buf *buf, int bufsize);
 void cleanup_rsbuf(rs_buf * buf);
 
+
 int list_u(char * token, int tok_len, int *terminator_read);
+
 void flush_rsbuf(rs_buf * buf);
 
 #endif
