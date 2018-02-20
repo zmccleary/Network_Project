@@ -50,8 +50,11 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
 
         }
         else if (state == LIST_USER){
-        	list_u(token, tok_len, terminator_read);
+        	list_u(token, tok_len, &terminator_read);
             //Handle list user
+            if(!terminator_read){
+            	flush_rsbuf(buf);
+            }
         }
         else if (state == MESSAGE_TO){
             //Handle message to
@@ -124,6 +127,7 @@ int login(int sockfd, char *username, rs_buf * buf){
     handle_read(sockfd, buf, LOGIN2);
     
     if(strcmp(buf->buffer, "ETAKEN\r\n\r\n")){
+
     }
 
     
@@ -153,11 +157,19 @@ void cleanup_rsbuf(rs_buf * buf){
     free(buf->buffer);
 }
 
-<<<<<<< HEAD
-int list_u(char * token, int tok_len, int terminator_read){
+int list_u(char * token, int tok_len, int *terminator_read){
+	rs_buf out_buf;
+	out_buf.buffer = calloc(BUFSIZE, sizeof(char));
+	out_buf.size = BUFSIZE;
+	int out_ind = 0;
+
 	if(strcmp(token, "UTSIL"))
         		return -1; //first value of token read should be UTSIL or else garbage
         	while((token = strtok(NULL, " ")) != NULL){
+        		
+        		if(*terminator_read)
+        			return -1;
+
         		tok_len = strlen(token);
         		if((tok_len > 10 && strcmp(token + ((tok_len) - 4), "\r\n\r\n")) ||
         		  	(!strcmp(token +((tok_len) - 4), "\r\n\r\n") && tok_len > 14))
@@ -166,32 +178,27 @@ int list_u(char * token, int tok_len, int terminator_read){
         		{
         			/*
         			 *If token is at most 10 chars and token is not terminated:
-        			 * 		 
+        			 *add to out_buf+out_ind
+        			 *increment out_ind
         			 */	
-
-
-
+        			strcpy(out_buf.buffer + out_ind, token);
+        			out_ind += tok_len;
         		}
         		else if(tok_len <= 14 && !strcmp(token + (tok_len - 4), "\r\n\r\n")){
         			/*
         			 *If token is terminated and at most 14 chars long
         			 */
-
-        			terminator_read = 1;
+        			strcpy(out_buf.buffer + out_ind, token);
+        			out_ind += tok_len;
+        			*terminator_read = 1;
         		}
 
-        	}
-
-        	if(!terminator_read){
-        		//flush read buffer and call read again
         	}
 
         	return 0;
 
 }
-=======
+
 void flush_rsbuf(rs_buf * buf){
     memset(buf->buffer, 0, buf->size);
 }
-
->>>>>>> c3fa81973a98f0c074476211664bf1bd2652fe40

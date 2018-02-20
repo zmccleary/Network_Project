@@ -28,10 +28,8 @@ int login(int sockfd, char *username, rs_buf *buf);
 void init_rsbuf(rs_buf * buf, int bufsize);
 void realloc_rsbuf(rs_buf *buf, int bufsize);
 void cleanup_rsbuf(rs_buf * buf);
-<<<<<<< HEAD
 
-int list_u(char * token, int tok_len, int terminator_read);
-=======
+int list_u(char * token, int tok_len, int *terminator_read);
 void flush_rsbuf(rs_buf * buf);
->>>>>>> c3fa81973a98f0c074476211664bf1bd2652fe40
+
 #endif

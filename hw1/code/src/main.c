@@ -24,7 +24,8 @@ int main(int argc, char **argv)
 	atexit(exit_cleanup);
 	char verbose = 0;
 
-    rs_buf * buf = (rs_buf *)malloc(sizeof(struct rs_buf *));
+    rs_buf * buf = (rs_buf *)malloc(sizeof(struct rs_buf));
+    rs_buf * read_buf = 
     init_rsbuf(buf, BUFSIZE);
     
     
@@ -67,7 +68,37 @@ int main(int argc, char **argv)
     if(curadd == NULL)
         client_error("Could not connect to host %s on port %d\n");
 	
+
+
 	login(sockfd, cli_name, buf);
+    fd_set read, write;
+    struct timeval timeout;
+    timeout.tv_sec = 30; //timeout 30 seconds
+    FD_ZERO(read);
+    FD_ZERO(write);
+
+    FD_SET(0,read); //check stdin for user input
+    FD_SET(sockfd, read); //check server for incoming data
+    FD_SET(sockfd, write); //check for data to send to server
+
+    while(state != LOGOUT){
+    	Select(sockfd, &read, &write, NULL, &timeout);
+
+    	if(FD_ISSET(0,read)){
+    		//something to be read from stdin
+
+
+    	}
+
+    	if(FD_ISSET(sockfd, read)){
+    		//something to be read from server socket
+    	}
+
+    	if(FD_ISSET(sockfd,write)){
+    		//something to be written to sockfd
+    	}
+    }
+
     freeaddrinfo(info);
 
     
