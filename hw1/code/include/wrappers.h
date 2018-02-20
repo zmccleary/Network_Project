@@ -18,7 +18,11 @@ void client_error(char *s);
 
 int Write(int fd, const void * buf, int count);
 
+<<<<<<< HEAD
 int Read(int fd, void * buf, size_t count, ChatState_t state);
+=======
+int Read(int fd, void * buf, size_t count);
+>>>>>>> 4370dc33498fad9e35048df92fb9d434939a9de5
 
 int Connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
