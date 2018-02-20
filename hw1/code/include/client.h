@@ -30,12 +30,8 @@ void printMOTD(rs_buf *buf);
 void init_rsbuf(rs_buf * buf, int bufsize);
 void realloc_rsbuf(rs_buf *buf, int bufsize);
 void cleanup_rsbuf(rs_buf * buf);
-<<<<<<< HEAD
 
 int list_u(char * token, int tok_len, int *terminator_read);
-=======
-int list_u(char * token, int tok_len, int terminator_read);
->>>>>>> f0f055a2013660d6a1e84eb0804d08137174a299
 void flush_rsbuf(rs_buf * buf);
 
 #endif

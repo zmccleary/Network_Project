@@ -75,35 +75,46 @@ int main(int argc, char **argv)
 
 
 	login(sockfd, cli_name, buf);
+
+
     fd_set read, write;
     struct timeval timeout;
-    timeout.tv_sec = 30; //timeout 30 seconds
-    FD_ZERO(read);
-    FD_ZERO(write);
+    
+    
+    
+   while(1){
+   	printf("The program gets up to here.\n");
+		timeout.tv_sec = 30; //timeout 30 seconds
+		FD_ZERO(&read);
+ 	   FD_ZERO(&write);
 
-    FD_SET(0,read); //check stdin for user input
-    FD_SET(sockfd, read); //check server for incoming data
-    FD_SET(sockfd, write); //check for data to send to server
+    	FD_SET(0,&read); //check stdin for user input
+    	FD_SET(sockfd, &read); //check server for incoming data
+    	FD_SET(sockfd, &write); //check for data to send to server
+	
+    	Select(sockfd + 1, &read, &write, NULL, &timeout);
 
-    while(state != LOGOUT){
-    	Select(sockfd, &read, &write, NULL, &timeout);
-
-    	if(FD_ISSET(0,read)){
+    	if(FD_ISSET(0,&read)){
     		//something to be read from stdin
-
-
+    		fgets(buf->buffer, BUFSIZE, stdin);
+		
+    	 	
     	}
 
-    	if(FD_ISSET(sockfd, read)){
+    	if(FD_ISSET(sockfd, &read)){
     		//something to be read from server socket
+    		
     	}
 
-    	if(FD_ISSET(sockfd,write)){
+    	if(FD_ISSET(sockfd,&write)){
     		//something to be written to sockfd
+    		Write(sockfd, buf->buffer, strlen(buf->buffer));
+    		flush_rsbuf(buf);
     	}
     }
 
     freeaddrinfo(info);
+    return 0;
 
     
 }

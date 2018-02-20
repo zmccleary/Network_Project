@@ -125,22 +125,16 @@ int login(int sockfd, char *username, rs_buf * buf){
 
     handle_read(sockfd, buf, LOGIN2);
     
-<<<<<<< HEAD
     if(strcmp(buf->buffer, "ETAKEN\r\n\r\n")){
 
     }
 
     
-
-
-
-
-=======
     if(strcmp(buf->buffer, "ETAKEN\r\n\r\n") == 0)
         client_error("Username taken\n");
     else if(strcmp(buf->buffer, "MAI\r\n\r\n") != 0)
         goto bad;
->>>>>>> f0f055a2013660d6a1e84eb0804d08137174a299
+
 
     //Try to read message of the day
     handle_read(sockfd, buf, MOTD);
@@ -151,6 +145,7 @@ int login(int sockfd, char *username, rs_buf * buf){
         goto bad;
 
     free(loginmsg);
+    flush_rsbuf(buf);
 	return 0;
 bad:
     client_error("Login attempt failed");
@@ -179,12 +174,18 @@ void realloc_rsbuf(rs_buf * buf, int bufsize){
 void cleanup_rsbuf(rs_buf * buf){
     free(buf->buffer);
 }
-int list_u(char * token, int tok_len, int terminator_read){
+int list_u(char * token, int tok_len, int *terminator_read){
+
+	rs_buf out_buf;
+	out_buf.buffer = calloc(BUFSIZE,sizeof(char));
+	out_buf.size = BUFSIZE;
+
+	int out_ind = 0;
 	if(strcmp(token, "UTSIL"))
         		return -1; //first value of token read should be UTSIL or else garbage
         	while((token = strtok(NULL, " ")) != NULL){
         		
-        		if(*terminator_read)
+        		if(*terminator_read == 1)
         			return -1;
 
         		tok_len = strlen(token);
@@ -218,6 +219,5 @@ int list_u(char * token, int tok_len, int terminator_read){
 
 void flush_rsbuf(rs_buf * buf){
     memset(buf->buffer, 0, buf->size);
-<<<<<<< HEAD
 }
 
