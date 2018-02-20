@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
 void client_error(char *s){
 	perror(s);
 	exit(EXIT_SUCCESS);
@@ -73,30 +74,32 @@ int Getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
 	return result;
 }
 
-int Read(int fd, void *buf, size_t count, ChatState_t state)
+int Read(int fd, void *buf, size_t buf_size,  ChatState_t state)
 {
 	int nread = 0;
 	int total_read = 0;
 	char *template;
+    char * uoff_temp = "UOFF";
+    char * from_temp = "FROM";
 
+    int count = buf_size;
 	int temp_len;
-	int buf_len;
 	int min = 0;
 
 	switch(state){
-		case LOGIN:
-			template = "U2EM\r\n\r\n"; //read should only be called for server response
+		case LOGIN1:
+			template = "U2EM"; //read should only be called for server response
 			break;
-		case MAI:
-			template = "MAI\r\n\r\n";
+		case LOGIN2:
+			template = "MAI";
 		case LIST_USER:
-			template = "UTSIL *. \r\n\r\n"; //this may work better with a regex
+			template = "UTSIL"; //this may work better with a regex
 			break;
 		case MESSAGE_TO:
-			template = "OT {1-10}/d \r\n\r\n"; //this too
+			template = "OT"; //this too
 			break;
 		case LOGOUT:
-			template = "EYB \r\n\r\n";
+			template = "EYB";
 			break;
 		default:
 			client_error("Not in a valid state!");
@@ -120,16 +123,22 @@ int Read(int fd, void *buf, size_t count, ChatState_t state)
 		/*At this point, we have some bytes in buf. 
 		*Parse the buffer to make sure that it starts with template.
 		*/
-		buf_len = strlen(buf);
 
-		min = buf_len < temp_len ? buf_len : temp_len;
+		min =  4 < temp_len ? 4 : temp_len;
 
-		if(!strncmp(buf, template, min)){
-			return -1; //buffer is not prefixed in valid way, return error
-		}
+        //If it is not the correct template message, or a uoff message, or a from message, it is garbage
+		if(strncmp(buf, template, min) != 0 && strncmp(buf, uoff_temp, 4) != 0 && strncmp(buf, from_temp, 4) != 0)
+            return -1;
 
 		count -= nread;
 		total_read += nread;
+        
+        /*If the count == 0, then nread = count: which means the whole buffer was filled. To fix, we realloc
+         *the buffer and set count = buf_size again
+         */ 
+        if(count == 0){
+
+        }
 	}
 
 	return total_read;

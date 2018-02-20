@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <wrappers.h>
+#include <stdlib.h>
 
 const char* cli_usage = "./client [-hv] NAME SERVER_IP SERVER_PORT\n"
                     "-h                         Displays this help menu, and returns EXIT_SUCCESS.\n"
@@ -14,7 +15,7 @@ const char* cli_usage = "./client [-hv] NAME SERVER_IP SERVER_PORT\n"
 int handle_read(int sockfd, char * buf, ChatState_t state){
     
     //Read from the socket into buf, check for garbage message`
-    if (Read(sockfd, buf, BUFSIZE) < 0){
+    if (Read(sockfd, buf, BUFSIZE, state) < 0){
         //Garbage termination function here
         
         return -1;
@@ -37,7 +38,7 @@ int handle_read(int sockfd, char * buf, ChatState_t state){
     
     }
     else{
-        if(state == LOGIN){
+        if(state == LOGIN1){
             //Handle login
         }
         else if (state == LIST_USER){
@@ -130,4 +131,16 @@ int login(int sockfd, char *username, char * buf){
 
 }
 
+//Initialize an rs_buf struct
+void init_rsbuf(rs_buf * buf, int bufsize){
+    buf->buffer = (char *)calloc(bufsize, sizeof(char));
+}
 
+void realloc_rsbuf(rs_buf * buf, int bufsize){
+    buf->buffer = (char *)realloc(buf->buffer, bufsize);
+}
+
+void cleanup_rsbuf(rs_buf * buf){
+    free(buf->buffer);
+    free(buf);
+}
