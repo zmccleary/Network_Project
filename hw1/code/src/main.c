@@ -24,7 +24,8 @@ int main(int argc, char **argv)
 	atexit(exit_cleanup);
 	char verbose = 0;
 
-    char buf[BUFSIZE];
+    rs_buf * buf = (rs_buf *)malloc(sizeof(struct rs_buf *));
+    init_rsbuf(buf, BUFSIZE);
     
     
     //Read in command line arguments
