@@ -18,6 +18,8 @@ void client_error(char *s);
 
 int Write(int fd, const void * buf, int count);
 
+int Read(int fd, void * buf, size_t count, ChatState_t state);
+
 int Connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
 int Getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);

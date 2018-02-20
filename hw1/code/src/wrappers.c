@@ -73,10 +73,30 @@ int Getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
 	return result;
 }
 
-int Read(int fd, void *buf, size_t count)
+int Read(int fd, void *buf, size_t count, ChatState_t state)
 {
 	int nread = 0;
 	int total_read = 0;
+	char *template;
+	
+	switch(state){
+		case LOGIN:
+			template = "U2EM\r\n\r\n"; //read should only be called for server response
+			break;
+		case MAI:
+			template = "MAI\r\n\r\n";
+		case LIST_USER:
+			template = "UTSIL *. \r\n\r\n"; //this may work better with a regex
+			break;
+		case MESSAGE_TO:
+			template = "OT {1-10}/d \r\n\r\n"; //this too
+			break;
+		case LOGOUT:
+			template = "EYB \r\n\r\n";
+			break;
+		default:
+			client_error("Not in a valid state!");
+	}
 	while(count > 0)
 	{
 		if((nread = read(fd, buf, count)) == -1)
@@ -89,6 +109,8 @@ int Read(int fd, void *buf, size_t count)
 
 		if(nread == 0) //EOF
 			return total_read;
+
+
 
 		count -= nread;
 		total_read += nread;

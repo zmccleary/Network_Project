@@ -9,7 +9,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define BUFSIZE 1024
 char **conn_info;
 
 void exit_cleanup()
