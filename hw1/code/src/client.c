@@ -3,6 +3,7 @@
 #include <string.h>
 #include <wrappers.h>
 #include <stdlib.h>
+#include <chat.h>
 
 const char* cli_usage = "./client [-hv] NAME SERVER_IP SERVER_PORT\n"
                     "-h                         Displays this help menu, and returns EXIT_SUCCESS.\n"
@@ -14,6 +15,7 @@ const char* cli_usage = "./client [-hv] NAME SERVER_IP SERVER_PORT\n"
 
 int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
     
+    int terminator_read = 0;
     //Read from the socket into buf, check for garbage message`
     flush_rsbuf(buf);
     if (Read(sockfd, buf, buf->size, state) < 0){
@@ -35,20 +37,16 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
     char * token = strtok(bufcopy, " ");
     int tok_len = 0;
     if(strcmp(token, "FROM") == 0){
-
+        //handle_from(buf);
     }
     else if (strcmp(token, "UOFF") == 0){
-    
+        //I dont think you need to do anything here until later
     }
     else{
         if(state == LOGIN1 || state == LOGIN2){
         }
         else if (state == LIST_USER){
-<<<<<<< HEAD
         	list_u(token, tok_len, &terminator_read);
-=======
-        	list_u(token, tok_len);
->>>>>>> 966ddee23d8ae5e84d5dc86fa1b372828a0d8205
             //Handle list user
             if(!terminator_read){
             	flush_rsbuf(buf);
@@ -164,21 +162,6 @@ void printMOTD(rs_buf * buf){
     printf("Message of the day: %s\n\nYou are now connected to the server: \n", token);
 }
 
-//Logs out from the server
-int logout(int sockfd, rs_buf * buf){
-    
-    //Print BYE to the server and wait for EYB
-    char * logoutmsg = "BYE\r\n\r\n";
-    Write(sockfd, logoutmsg, strlen(logoutmsg));
-    handle_read(sockfd, buf, LOGOUT);
-    cleanup_rsbuf(buf);
-    free(buf);
-    printf("Logging out of the server.\n");
-    exit(EXIT_SUCCESS);
-
-
-}
-
 //Initialize an rs_buf struct
 void init_rsbuf(rs_buf * buf, int bufsize){
     buf->buffer = (char *)calloc(bufsize, sizeof(char));
@@ -193,21 +176,14 @@ void realloc_rsbuf(rs_buf * buf, int bufsize){
 void cleanup_rsbuf(rs_buf * buf){
     free(buf->buffer);
 }
-int list_u(char * token, int tok_len, int *terminator_read){
+int list_u(char * token, int tok_len, int * terminator_read){
 
 	rs_buf out_buf;
 	out_buf.buffer = calloc(BUFSIZE,sizeof(char));
 	out_buf.size = BUFSIZE;
+    int out_ind = 0;
 
-/*<<<<<<< HEAD
-	int out_ind = 0;
-	if(strcmp(token, "UTSIL"))
-=======
-*/
-//int list_u(char * token, int tok_len){
-	int terminator_read = 0;
     if(strcmp(token, "UTSIL"))
-//>>>>>>> 966ddee23d8ae5e84d5dc86fa1b372828a0d8205
         		return -1; //first value of token read should be UTSIL or else garbage
         	while((token = strtok(NULL, " ")) != NULL){
         		

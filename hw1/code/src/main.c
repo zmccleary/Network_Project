@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <wrappers.h>
 #include <client.h>
+#include <chat.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
     }
     printf("Succesful connection! Login is being attempted...\n");
 	
-
+    freeaddrinfo(info);
 
 	login(sockfd, cli_name, buf);
 
@@ -82,11 +83,11 @@ int main(int argc, char **argv)
     
     
     
-   while(1){
-   	printf("The program gets up to here.\n");
+    while(1){
+   	    //printf("The program gets up to here.\n");
 		timeout.tv_sec = 30; //timeout 30 seconds
 		FD_ZERO(&read);
- 	   FD_ZERO(&write);
+ 	    FD_ZERO(&write);
 
     	FD_SET(0,&read); //check stdin for user input
     	FD_SET(sockfd, &read); //check server for incoming data
@@ -97,9 +98,23 @@ int main(int argc, char **argv)
     	if(FD_ISSET(0,&read)){
     		//something to be read from stdin
     		fgets(buf->buffer, BUFSIZE, stdin);
-		
-    	 	
-    	}
+            if(strncmp(buf->buffer, "/help", 5) == 0)
+                printhelp();
+            else if(strncmp(buf->buffer, "/logout", 7) == 0)
+                logout(sockfd, buf);
+            else if(strncmp(buf->buffer, "/listu", 6) == 0)
+                listusers(sockfd, buf);
+            else if(strncmp(buf->buffer, "/chat", 5) == 0){
+                //get to and msg, then call:
+                //chat(sockfd, buf, to msg)
+            }
+            else
+            {
+                printf("Message not recognized\n");
+            }
+            
+            flush_rsbuf(buf);
+        }
 
     	if(FD_ISSET(sockfd, &read)){
     		//something to be read from server socket
@@ -113,9 +128,7 @@ int main(int argc, char **argv)
     	}
     }
 
-    freeaddrinfo(info);
     return 0;
-
-    logout(sockfd, buf);    
+   
 }
 

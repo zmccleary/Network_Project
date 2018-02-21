@@ -26,9 +26,7 @@ typedef enum{
 int handle_read(int sockfd, rs_buf * buf, ChatState_t state);
 char parse_args(int argc, char * const argv[], char * conn_info[]);
 int login(int sockfd, char *username, rs_buf *buf);
-void printMOTD(rs_buf *buf);
-int list_u(char * token, int tok_len);
-int logout(int sockfd, rs_buf *buf); 
+void printMOTD(rs_buf *buf); 
 
 //Buffer functions
 void init_rsbuf(rs_buf * buf, int bufsize);
