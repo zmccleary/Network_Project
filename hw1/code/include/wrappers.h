@@ -19,7 +19,7 @@ void client_error(char *s);
 
 int Write(int fd, const void * buf, int count);
 
-int Read(int fd, void * buf, size_t buf_size, ChatState_t state);
+int Read(int fd, rs_buf * buf, size_t buf_size, ChatState_t state);
 
 int Connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 

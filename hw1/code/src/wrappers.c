@@ -5,7 +5,7 @@
 #include <string.h>
 void client_error(char *s){
 	perror(s);
-	exit(EXIT_SUCCESS);
+	exit(0);
 }
 
 int Socket(int domain, int type, int protocol){
@@ -74,7 +74,7 @@ int Getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
 	return result;
 }
 
-int Read(int fd, void *buf, size_t buf_size,  ChatState_t state)
+int Read(int fd, rs_buf *buf, size_t buf_size,  ChatState_t state)
 {
 	int nread = 0;
 	int total_read = 0;
@@ -82,7 +82,6 @@ int Read(int fd, void *buf, size_t buf_size,  ChatState_t state)
     char * uoff_temp = "UOFF";
     char * from_temp = "FROM";
 
-    int count = buf_size;
 	int temp_len;
 	int min = 0;
 
@@ -92,6 +91,10 @@ int Read(int fd, void *buf, size_t buf_size,  ChatState_t state)
 			break;
 		case LOGIN2:
 			template = "MAI";
+            break;
+        case MOTD:
+            template = "MOTD";
+            break;
 		case LIST_USER:
 			template = "UTSIL"; //this may work better with a regex
 			break;
@@ -106,10 +109,10 @@ int Read(int fd, void *buf, size_t buf_size,  ChatState_t state)
 	}
 
 	temp_len = strlen(template);
-
-	while(count > 0)
+    char * totalbuf = (char *)calloc(buf->size, sizeof(char));
+	while(strstr(totalbuf, "\r\n\r\n") == NULL)
 	{
-		if((nread = read(fd, buf, count)) == -1)
+		if((nread = read(fd, buf->buffer, 1)) == -1)
 		{
 			if(errno == EINTR)
 				continue;
@@ -117,29 +120,35 @@ int Read(int fd, void *buf, size_t buf_size,  ChatState_t state)
 				client_error("Unable to read bytes from buffer.");
 		}
 
-		if(nread == 0) //EOF
-			return total_read;
+		/*if(nread == 0) //EOF
+			return total_read;*/
 
 		/*At this point, we have some bytes in buf. 
 		*Parse the buffer to make sure that it starts with template.
 		*/
+        if(total_read == (4 > temp_len ? 4 : temp_len) && state != MOTD)
+        {
+		    min =  4 < temp_len ? 4 : temp_len;
 
-		min =  4 < temp_len ? 4 : temp_len;
+            //If it is not the correct template message, or a uoff message, or a from message, it is garbage
+		    if(strncmp(totalbuf, template, min) != 0 && strncmp(totalbuf, uoff_temp, 4) != 0 
+                    && strncmp(totalbuf, from_temp, 4) != 0)
+                return -1;
+        }
 
-        //If it is not the correct template message, or a uoff message, or a from message, it is garbage
-		if(strncmp(buf, template, min) != 0 && strncmp(buf, uoff_temp, 4) != 0 && strncmp(buf, from_temp, 4) != 0)
-            return -1;
+        strcat(totalbuf, buf->buffer);
 
-		count -= nread;
 		total_read += nread;
         
         /*If the count == 0, then nread = count: which means the whole buffer was filled. To fix, we realloc
          *the buffer and set count = buf_size again
          */ 
-        if(count == 0){
-
+        if(total_read == buf->size){
+            realloc_rsbuf(buf, buf->size*2);
+            totalbuf = realloc(totalbuf, buf->size);
         }
 	}
-
+    strcpy(buf->buffer, totalbuf);
+    free(totalbuf);
 	return total_read;
 }
