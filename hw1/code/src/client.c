@@ -147,7 +147,7 @@ void printMOTD(rs_buf * buf){
     char del[] = " ";
     char * token = strtok(buf->buffer, del);
     token = strtok(NULL, "\r");
-    printf("%s\n\nYou may enter input now: \n", token);
+    printf("Message of the day: %s\n\nYou are now connected to the server: \n", token);
 }
 
 //Initialize an rs_buf struct
@@ -165,7 +165,6 @@ void cleanup_rsbuf(rs_buf * buf){
     free(buf->buffer);
 }
 
-<<<<<<< HEAD
 int list_u(char * token, int tok_len, int terminator_read){
 	if(strcmp(token, "UTSIL"))
         		return -1; //first value of token read should be UTSIL or else garbage
@@ -201,9 +200,8 @@ int list_u(char * token, int tok_len, int terminator_read){
         	return 0;
 
 }
-=======
+
 void flush_rsbuf(rs_buf * buf){
     memset(buf->buffer, 0, buf->size);
 }
 
->>>>>>> c3fa81973a98f0c074476211664bf1bd2652fe40
