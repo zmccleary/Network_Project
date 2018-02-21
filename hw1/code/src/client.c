@@ -12,10 +12,11 @@ const char* cli_usage = "./client [-hv] NAME SERVER_IP SERVER_PORT\n"
                     "SERVER_PORT                The port to connect to.\n";
 
 
-int handle_read(int sockfd, char * buf, ChatState_t state){
+int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
     
     //Read from the socket into buf, check for garbage message`
-    if (Read(sockfd, buf, BUFSIZE, state) < 0){
+    flush_rsbuf(buf);
+    if (Read(sockfd, buf, buf->size, state) < 0){
         //Garbage termination function here
         
         return -1;
@@ -30,7 +31,7 @@ int handle_read(int sockfd, char * buf, ChatState_t state){
      *
      * We parse the input and then handle the options accordingly
      */
-    char * token = strtok(buf, " ");
+    char * token = strtok(buf->buffer, " ");
     if(strcmp(token, "FROM")){
 
     }
@@ -39,7 +40,12 @@ int handle_read(int sockfd, char * buf, ChatState_t state){
     }
     else{
         if(state == LOGIN1){
-            //Handle login
+            //If the ack is not recieved, quit
+            if(!strcmp(token, "U2EM\r\n\r\n"))
+                return -1;
+        }
+        else if (state == LOGIN2){
+
         }
         else if (state == LIST_USER){
             //Handle list user
@@ -94,32 +100,30 @@ char parse_args(int argc, char * const argv[], char * conn_info[]){
 	
 	return opcode;
 }
-int login(int sockfd, char *username, char * buf){
+int login(int sockfd, char *username, rs_buf * buf){
 	
-	fd_set read, write;
-	struct timeval time;
+    char * loginmsg = "ME2U\r\n\r\n";
 
-	//int fds = 0;
-	FD_ZERO(&read);
-	FD_ZERO(&write);
-	//FD_SET(sockfd, &read);
-	FD_SET(sockfd, &write);
-	time.tv_sec = 45;
-	//fds = 
+    //Write to the socket and wait for a read
+    Write(sockfd, loginmsg, strlen(loginmsg));
 
-	Select(sockfd, &read, &write, NULL, &time);
+    handle_read(sockfd, buf, LOGIN1);
 
-	if(FD_ISSET(sockfd, &read)){
-		//do read operation
-	}
+    if(!strcmp(buf->buffer, "U2EM\r\n\r\n"))
+        client_error("Login attempt failed.\n");
 
-	if(FD_ISSET(sockfd, &write)){
-		//do write operation
-		Write(sockfd, "ME2U\r\n\r\n", sizeof(char)*8);
-	}
+    loginmsg = "IAM ";
+    strcat(loginmsg, username);
+    strcat(loginmsg, "\r\n\r\n");
 
+    Write(sockfd, loginmsg, strlen(loginmsg));
 
+    handle_read(sockfd, buf, LOGIN2);
+    
+    if(strcmp(buf->buffer, "ETAKEN\r\n\r\n")){
+    }
 
+    
 
 
 
@@ -142,5 +146,9 @@ void realloc_rsbuf(rs_buf * buf, int bufsize){
 
 void cleanup_rsbuf(rs_buf * buf){
     free(buf->buffer);
-    free(buf);
 }
+
+void flush_rsbuf(rs_buf * buf){
+    memset(buf->buffer, 0, buf->size);
+}
+
