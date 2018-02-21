@@ -45,36 +45,7 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
         if(state == LOGIN1 || state == LOGIN2){
         }
         else if (state == LIST_USER){
-        	if(strcmp(token, "UTSIL"))
-        		return -1; //first value of token read should be UTSIL or else garbage
-        	while((token = strtok(NULL, " ")) != NULL){
-        		tok_len = strlen(token);
-        		if((tok_len > 10 && strcmp(token + (tok_len - 4), "\r\n\r\n")) ||
-        		  	(!strcmp(token +(tok_len - 4), "\r\n\r\n") && tok_len > 14))
-        			return -1; //username cannot exceed 10 chars, treat as garbage unless terminator as suffix and >= 14 chars
-        		else if (tok_len <= 10 && strcmp(token + (tok_len - 4), "\r\n\r\n"))
-        		{
-        			/*
-        			 *If token is at most 10 chars and token is not terminated:
-        			 * 		 
-        			 */	
-
-
-
-        		}
-        		else if(tok_len <= 14 && !strcmp(token + (tok_len - 4), "\r\n\r\n")){
-        			/*
-        			 *If token is terminated and at most 14 chars long
-        			 */
-        		}
-
-        	}
-
-        	if(!terminator_read){
-
-        	}
-
-
+        	list_u(token, tok_len, terminator_read);
             //Handle list user
         }
         else if (state == MESSAGE_TO){
@@ -194,7 +165,45 @@ void cleanup_rsbuf(rs_buf * buf){
     free(buf->buffer);
 }
 
+<<<<<<< HEAD
+int list_u(char * token, int tok_len, int terminator_read){
+	if(strcmp(token, "UTSIL"))
+        		return -1; //first value of token read should be UTSIL or else garbage
+        	while((token = strtok(NULL, " ")) != NULL){
+        		tok_len = strlen(token);
+        		if((tok_len > 10 && strcmp(token + ((tok_len) - 4), "\r\n\r\n")) ||
+        		  	(!strcmp(token +((tok_len) - 4), "\r\n\r\n") && tok_len > 14))
+        			return -1; //username cannot exceed 10 chars, treat as garbage unless terminator as suffix and >= 14 chars
+        		else if (tok_len <= 10 && strcmp(token + (tok_len - 4), "\r\n\r\n"))
+        		{
+        			/*
+        			 *If token is at most 10 chars and token is not terminated:
+        			 * 		 
+        			 */	
+
+
+
+        		}
+        		else if(tok_len <= 14 && !strcmp(token + (tok_len - 4), "\r\n\r\n")){
+        			/*
+        			 *If token is terminated and at most 14 chars long
+        			 */
+
+        			terminator_read = 1;
+        		}
+
+        	}
+
+        	if(!terminator_read){
+        		//flush read buffer and call read again
+        	}
+
+        	return 0;
+
+}
+=======
 void flush_rsbuf(rs_buf * buf){
     memset(buf->buffer, 0, buf->size);
 }
 
+>>>>>>> c3fa81973a98f0c074476211664bf1bd2652fe40
