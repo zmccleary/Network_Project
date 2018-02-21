@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 void printhelp(){
-    const char * helpmsg = "Commands:\n"
+    const char * helpmsg = "\nCommands:\n"
         "/help              Displays all command that the client accepts.\n"
         "/logout            Initiates logout procedure from the server.\n"
         "/listu             Request a list of logged in users from the server\n"
@@ -46,3 +46,15 @@ void chat(int sockfd, rs_buf *buf, char * to, char * msg)
     free(tomsg);
 }
 
+void handle_from(int sockfd, rs_buf * buf)
+{
+    char * confirm = (char *)calloc(25, sizeof(char));
+    char * user = strtok(buf->buffer, " ");
+    user = strtok(NULL, " ");
+    sprintf(confirm, "MORF %s\r\n\r\n", user);
+    char * message = strtok(NULL, "\r");
+    printf("<%s>: %s\n", user, message);
+    flush_rsbuf(buf);
+    Write(sockfd, confirm, strlen(confirm));
+    free(confirm);
+}

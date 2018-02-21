@@ -14,9 +14,11 @@ const char* cli_usage = "./client [-hv] NAME SERVER_IP SERVER_PORT\n"
 
 
 int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
-    
-    int terminator_read = 0;
+
+    int terminator_read;
     //Read from the socket into buf, check for garbage message`
+top:
+    terminator_read = 0;
     flush_rsbuf(buf);
     if (Read(sockfd, buf, buf->size, state) < 0){
         //Garbage termination function here
@@ -37,10 +39,14 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
     char * token = strtok(bufcopy, " ");
     int tok_len = 0;
     if(strcmp(token, "FROM") == 0){
-        //handle_from(buf);
+        handle_from(sockfd, buf);
+        if(state != DEFAULT)
+            goto top;
     }
-    else if (strcmp(token, "UOFF") == 0){
+    else if (strcmp(token, "UOFF\r\n\r\n") == 0){
         //I dont think you need to do anything here until later
+        if(state != DEFAULT)
+            goto top;
     }
     else{
         if(state == LOGIN1 || state == LOGIN2){
@@ -159,7 +165,8 @@ void printMOTD(rs_buf * buf){
     char del[] = " ";
     char * token = strtok(buf->buffer, del);
     token = strtok(NULL, "\r");
-    printf("Message of the day: %s\n\nYou are now connected to the server: \n", token);
+    printf("Message of the day: %s\n\nYou are now connected to the server "
+            "(type '/help' for options): \n", token);
 }
 
 //Initialize an rs_buf struct
