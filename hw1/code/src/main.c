@@ -75,6 +75,6 @@ int main(int argc, char **argv)
 	login(sockfd, cli_name, buf);
     freeaddrinfo(info);
 
-    
+    logout(sockfd, buf);    
 }
 
