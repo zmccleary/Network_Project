@@ -14,6 +14,7 @@ const char* cli_usage = "./client [-hv] NAME SERVER_IP SERVER_PORT\n"
 
 int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
     
+    int terminator_read = 0; //keep track of state when \r\n\r\n is read
     //Read from the socket into buf, check for garbage message`
     flush_rsbuf(buf);
     if (Read(sockfd, buf, buf->size, state) < 0){
@@ -32,6 +33,7 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
      * We parse the input and then handle the options accordingly
      */
     char * token = strtok(buf->buffer, " ");
+    int tok_len = 0;
     if(strcmp(token, "FROM")){
 
     }
@@ -48,6 +50,36 @@ int handle_read(int sockfd, rs_buf * buf, ChatState_t state){
 
         }
         else if (state == LIST_USER){
+        	if(strcmp(token, "UTSIL"))
+        		return -1; //first value of token read should be UTSIL or else garbage
+        	while((token = strtok(NULL, " ")) != NULL){
+        		tok_len = strlen(token);
+        		if((tok_len > 10 && strcmp(token + (tok_len - 4), "\r\n\r\n")) ||
+        		  	(!strcmp(token +(tok_len - 4), "\r\n\r\n") && tok_len > 14))
+        			return -1; //username cannot exceed 10 chars, treat as garbage unless terminator as suffix and >= 14 chars
+        		else if (tok_len <= 10 && strcmp(token + (tok_len - 4), "\r\n\r\n"))
+        		{
+        			/*
+        			 *If token is at most 10 chars and token is not terminated:
+        			 * 		 
+        			 */	
+
+
+
+        		}
+        		else if(tok_len <= 14 && !strcmp(token + (tok_len - 4), "\r\n\r\n")){
+        			/*
+        			 *If token is terminated and at most 14 chars long
+        			 */
+        		}
+
+        	}
+
+        	if(!terminator_read){
+
+        	}
+
+
             //Handle list user
         }
         else if (state == MESSAGE_TO){
@@ -138,10 +170,12 @@ int login(int sockfd, char *username, rs_buf * buf){
 //Initialize an rs_buf struct
 void init_rsbuf(rs_buf * buf, int bufsize){
     buf->buffer = (char *)calloc(bufsize, sizeof(char));
+    buf->size = bufsize;
 }
 
 void realloc_rsbuf(rs_buf * buf, int bufsize){
     buf->buffer = (char *)realloc(buf->buffer, bufsize);
+    buf->size += bufsize - buf->size;
 }
 
 void cleanup_rsbuf(rs_buf * buf){
