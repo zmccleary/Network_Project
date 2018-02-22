@@ -213,18 +213,25 @@ int list_u(char * token, int tok_len, int * terminator_read){
         			 */	
         			strcpy(out_buf.buffer + out_ind, token);
         			out_ind += tok_len;
+        			strcpy(out_buf.buffer + (out_ind++) , "\t");
         		}
         		else if(tok_len <= 14 && !strcmp(token + (tok_len - 4), "\r\n\r\n")){
         			/*
         			 *If token is terminated and at most 14 chars long
         			 */
-        			strcpy(out_buf.buffer + out_ind, token);
-        			out_ind += tok_len;
+        			strncpy(out_buf.buffer + out_ind, token, (tok_len - 4));
+        			out_ind += tok_len - 4;
         			*terminator_read = 1;
         		}
 
         	}
-
+			token = strtok(out_buf.buffer, "\t");
+        	while(token != NULL){
+        		printf("%s ", token);
+        		token = strtok(NULL, "\t");
+        	}
+        	if(terminator_read)
+        		printf("\n");
         	return 0;
 
 }
