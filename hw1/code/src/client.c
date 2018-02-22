@@ -48,6 +48,9 @@ top:
         if(state != DEFAULT)
             goto top;
     }
+    else if (strcmp(token, "EDNE") == 0){
+        printf("User does not exist.\n");
+    }
     else{
         if(state == LOGIN1 || state == LOGIN2){
         }

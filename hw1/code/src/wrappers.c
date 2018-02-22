@@ -81,6 +81,7 @@ int Read(int fd, rs_buf *buf, size_t buf_size,  ChatState_t state)
 	char *template;
     char * uoff_temp = "UOFF";
     char * from_temp = "FROM";
+    char * edne_temp = "EDNE";
 
 	int temp_len;
 	int min = 0;
@@ -137,7 +138,8 @@ int Read(int fd, rs_buf *buf, size_t buf_size,  ChatState_t state)
 
             //If it is not the correct template message, or a uoff message, or a from message, it is garbage
 		    if(strncmp(totalbuf, template, min) != 0 && strncmp(totalbuf, uoff_temp, 4) != 0 
-                    && strncmp(totalbuf, from_temp, 4) != 0)
+                    && strncmp(totalbuf, from_temp, 4) != 0 
+                    && strncmp(totalbuf, edne_temp, 4) != 0)
                 return -1;
         }
 
