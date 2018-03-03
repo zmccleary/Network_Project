@@ -3,7 +3,7 @@ import sys
 from threading import Thread
 from concurrent_dict import conc_dict
 
-flags = 0
+
 port_num = 0
 num_workers = 0
 motd = ""
@@ -33,6 +33,7 @@ def server_shutdown():
     return None
 
 def parse_args(argc, argv):
+    flags = 0
     if argc < 2:
         print(usage,arg_errormsg)
         exit(1)
@@ -52,7 +53,9 @@ def parse_args(argc, argv):
     num_workers = int(argv[2+flags])
     motd = (argv[3+flags])
     return (port_num, num_workers,motd)
-
+def worker_exec(i):
+    #worker threads will execute this when started
+    print("Spawned worker thread #%d",i)
 if __name__ == '__main__':
     users = conc_dict() #store logged in users as a dictionary to allow for iterative dumps and fast insertion/collision checking
 
@@ -66,20 +69,30 @@ if __name__ == '__main__':
     except OSError:
         print("Unable to create socket instance.")
     try:
-        sock.bind(sock.getfqdn(), port_num)
+        sock.bind(('', port_num))
         sock.listen()
+        sock.settimeout(30)
     except OSError:
         print("Unable to complete bind/listen.")
     except socket.herror as e:
-        print("Hostname error", e.errno) 
-
+        print("Hostname error", e.errno)
+    threads = []
+    for x in range(num_workers):
+        worker = Thread(target = worker_exec, args =(x,))
+        threads.append(worker)
+        worker.start()
+    
     while True: #change this later
         try:
             connection = sock.accept()
-            p = Process(target=serverExec)
-            p.start("fork")
-            p.join()
+       
+        except socket.timeout:
+            sock.close()
+            for t in threads:
+                t.join()
+            print("Timeout reached. Terminating program.")
+            exit(1)
         except OSError as e:
             print("Error ", e.errno)
-        finally:
-            sock.close()
+
+            
