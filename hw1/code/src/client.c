@@ -43,13 +43,17 @@ top:
         if(state != DEFAULT)
             goto top;
     }
-    else if (strcmp(token, "UOFF\r\n\r\n") == 0){
+    else if (strcmp(token, "UOFF") == 0){
         //I dont think you need to do anything here until later
+        char * usrname = strtok(NULL, "\r");
+        send_uoff(usrname);
+        flush_rsbuf(buf);
         if(state != DEFAULT)
             goto top;
     }
     else if (strcmp(token, "EDNE") == 0){
         printf("User does not exist.\n");
+        flush_rsbuf(buf);
     }
     else{
         if(state == LOGIN1 || state == LOGIN2){
@@ -239,4 +243,97 @@ int list_u(char * token, int tok_len, int * terminator_read){
 void flush_rsbuf(rs_buf * buf){
     memset(buf->buffer, 0, buf->size);
 }
+
+//Adds a window to the windows buffer
+void add_window(char * name, char * message){
+    //create the pipes for IPC
+    int pfd1[2];
+    int pfd2[2];
+    if (pipe(pfd1) < 0 || pipe(pfd2) < 0)
+        client_error("Pipe failed");
+
+
+    //Add a new window to windows using the name and file descriptors
+    window * wp = malloc(sizeof(window));
+    strcpy(wp->name, name);
+    wp->writepipe = pfd1[1];
+    wp->readpipe = pfd2[0];
+    awl(wp);
+
+    //Now that the window is set, fork and set the child to spawn a terminal and 
+    //multiplex over the input
+    pid_t pid;
+    if ((pid =fork()) < 0)
+        client_error("Fork error");
+    else if (pid == 0)  //Child
+    {
+        //close unused file descriptors for the pipes
+        close(pfd1[1]);
+        close(pfd2[0]);
+
+        //Dup the used pipes to be file descriptors 3 and 4
+        if(pfd1[0] != 0){
+            if (dup2(pfd1[0], 3) != 3)
+                client_error("Failed to dup stdin");
+        }
+        if(pfd2[1] != 1){
+            if(dup2(pfd2[1], 4) != 4)
+                client_error("Failed to dup stdout");
+        }
+
+        if(execl("/usr/bin/xterm", "/usr/bin/xterm","-hold", 
+                    "-e", "./chatwindow", name, message,  NULL) < 0)
+            client_error("Error executing chatwindow");
+    } 
+    else    //Parent
+    {
+        close(pfd1[0]);
+        close(pfd2[1]);
+        char * msg = (char *)calloc(100, sizeof(char));
+        /*sprintf(msg, "You are now chatting with %s:\n\n", name);
+        if(write(wp->writepipe, msg, strlen(msg)) < 0)
+            client_error("Failed to write");*/
+        free(msg);
+    }
+
+
+}
+
+//Terminates the window which UOFF user is connected to
+void remove_window(char * name)
+{
+    window * curr;
+    for(curr = tail; curr != NULL; curr = curr->prev);
+    {
+        if(name == curr->name)
+        {
+            char msg[5] = "UOFF";
+            write(curr->writepipe, msg, strlen(msg));
+            close(curr->writepipe);
+            close(curr->readpipe);
+            rwl(curr);
+        }
+    }
+}
+
+//Adds window to the list
+void awl(window * wp)
+{
+    wp->prev = tail;
+    wp->next = NULL;
+    tail = wp;
+}
+
+//removes window from the list
+void rwl(window * wp)
+{
+    if(wp->prev != NULL)
+        wp->prev->next = wp->next;
+    if(wp->next != NULL)
+        wp->next->prev = wp->prev;
+    free(wp);
+}
+
+
+
 

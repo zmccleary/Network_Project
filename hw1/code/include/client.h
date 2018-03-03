@@ -13,6 +13,17 @@ typedef struct{
     int size;
 }rs_buf;
 
+
+typedef struct window{
+    char name[11];
+    int readpipe;
+    int writepipe;
+    struct window * next;
+    struct window * prev;
+}window;
+extern window * tail;
+
+
 typedef enum{
     LOGIN1,
     LOGIN2,
@@ -38,5 +49,10 @@ void cleanup_rsbuf(rs_buf * buf);
 int list_u(char * token, int tok_len, int *terminator_read);
 
 void flush_rsbuf(rs_buf * buf);
+
+void add_window(char * name, char * message);
+void awl(window * wp);
+void rwl(window * wp);
+void remove_window(char * name);
 
 #endif

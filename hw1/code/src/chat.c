@@ -37,12 +37,26 @@ void logout(int sockfd, rs_buf * buf){
 
 }
 
+void chat_init(int sockfd, rs_buf *buf, char * to, char * msg)
+{
+    char * name = (char *)calloc(11, sizeof(char));
+    char * mesg = (char *)calloc(buf->size, sizeof(char));
+    strcpy(mesg, msg);
+    strcpy(name, to);
+    chat(sockfd, buf, to, msg);
+    add_window(name, mesg);
+    free(mesg);
+}
+
+
 void chat(int sockfd, rs_buf *buf, char * to, char * msg)
 {
     char * tomsg = (char *)calloc(buf->size, sizeof(char));
-    sprintf(tomsg, "TO %s %s\r\n\r\n", to, msg);
+    char * tmg = strtok(msg, "\n");
+    sprintf(tomsg, "TO %s %s\r\n\r\n", to, tmg);
     Write(sockfd, tomsg, strlen(tomsg));
     handle_read(sockfd, buf, MESSAGE_TO);
+    flush_rsbuf(buf);
     free(tomsg);
 }
 
@@ -52,9 +66,42 @@ void handle_from(int sockfd, rs_buf * buf)
     char * user = strtok(buf->buffer, " ");
     user = strtok(NULL, " ");
     sprintf(confirm, "MORF %s\r\n\r\n", user);
-    char * message = strtok(NULL, "\r");
-    printf("<%s>: %s\n", user, message);
+    char * message = strtok(NULL, "\n");
+    //printf("<%s>: %s\n", user, message);
+    write_to_window(user, message);
     flush_rsbuf(buf);
     Write(sockfd, confirm, strlen(confirm));
     free(confirm);
+}
+
+void write_to_window(char * user, char * message)
+{
+    window * wp;
+    for(wp = tail; wp != NULL; wp = wp->prev)
+    {
+        if(strcmp(wp->name, user) == 0)
+            break;
+    }
+    if(wp == NULL)
+    {
+        add_window(user, NULL);
+        wp = tail;
+    }
+    char * send = (char *)calloc(strlen(message + 10), sizeof(char));
+    sprintf(send, "MSG %s", message);
+    write(wp->writepipe, send, strlen(send));
+}
+
+void send_uoff(char * name)
+{
+    window *wp;
+    char uoff[] = "UOFF";
+    for(wp = tail; wp != NULL; wp = wp->prev)
+    {
+        if(strcmp(wp->name, name) == 0)
+        {
+            write(wp->writepipe, uoff, strlen(uoff));
+            return;
+        }
+    }
 }

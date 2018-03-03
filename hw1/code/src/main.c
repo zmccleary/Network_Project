@@ -11,6 +11,7 @@
 #include <netdb.h>
 
 char **conn_info;
+window * tail = NULL;
 
 void exit_cleanup()
 {
@@ -77,25 +78,38 @@ int main(int argc, char **argv)
 
 	login(sockfd, cli_name, buf);
 
-
-    fd_set read, write;
+    int maxfd = 0;
+    int maxpipe = 0;
+    fd_set readset, writeset;
     struct timeval timeout;
-    
+    window * wslct;
+     
     
     
     while(1){
    	    //printf("The program gets up to here.\n");
 		timeout.tv_sec = 30; //timeout 30 seconds
-		FD_ZERO(&read);
- 	    FD_ZERO(&write);
+		FD_ZERO(&readset);
+ 	    FD_ZERO(&writeset);
 
-    	FD_SET(0,&read); //check stdin for user input
-    	FD_SET(sockfd, &read); //check server for incoming data
-    	FD_SET(sockfd, &write); //check for data to send to server
+    	FD_SET(0,&readset); //check stdin for user input
+    	FD_SET(sockfd, &readset); //check server for incoming data
+    	FD_SET(sockfd, &writeset); //check for data to send to server
+
+        //Add windows to the read and write set
+        for(wslct = tail; wslct != NULL; wslct= wslct->prev)
+        {
+            FD_SET(wslct->readpipe, &readset);
+            FD_SET(wslct->writepipe, &writeset);
+            maxpipe = (wslct->writepipe > wslct->readpipe) ? 
+                wslct->writepipe : wslct->readpipe;
+            if(maxpipe > maxfd)
+                maxfd = maxpipe;
+        }
 	
-    	Select(sockfd + 1, &read, &write, NULL, &timeout);
+        Select(maxfd + 1, &readset, &writeset, NULL, &timeout);
 
-    	if(FD_ISSET(0,&read)){
+    	if(FD_ISSET(0,&readset)){
     		//something to be read from stdin
     		fgets(buf->buffer, BUFSIZE, stdin);
             if(strncmp(buf->buffer, "/help", 5) == 0)
@@ -109,7 +123,7 @@ int main(int argc, char **argv)
                 char * to = strtok(buf->buffer, " ");
                 to = strtok(NULL, " ");
                 char * msg = strtok(NULL, "\n");
-                chat(sockfd, buf, to, msg);
+                chat_init(sockfd, buf, to, msg);
             }
             else
             {
@@ -119,19 +133,39 @@ int main(int argc, char **argv)
             flush_rsbuf(buf);
         }
 
-    	if(FD_ISSET(sockfd, &read)){
+    	if(FD_ISSET(sockfd, &readset)){
     		//something to be read from server socket
     	    handle_read(sockfd, buf, DEFAULT);	
     	}
 
-    	if(FD_ISSET(sockfd,&write)){
+    	if(FD_ISSET(sockfd,&writeset)){
     		//something to be written to sockfd
-    		Write(sockfd, buf->buffer, strlen(buf->buffer));
-    		flush_rsbuf(buf);
+    		//Write(sockfd, buf->buffer, strlen(buf->buffer));
+    		//flush_rsbuf(buf);
     	}
-    }
 
+        //Check if any pipes need to be read or written to
+        for(wslct = tail; wslct != NULL; wslct = wslct->prev)
+        {
+            /*if(FD_ISSET(wslct->writepipe, &writeset))
+            {
+                write(wslct->writepipe, buf->buffer, buf->size);
+            }*/
+            if(FD_ISSET(wslct->readpipe, &readset))
+            {
+                if(read(wslct->readpipe, buf->buffer, buf->size) == 0)
+                {
+                    remove_window(wslct->name);
+                }
+                else
+                {
+                    chat(sockfd, buf, wslct->name, buf->buffer);
+                }
+            }
+        }
+    }
     return 0;
    
 }
+
 
