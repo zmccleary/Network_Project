@@ -5,6 +5,8 @@ from concurrent_dict import conc_dict
 from queue import Queue
 from user import User
 from select import select
+from job import Job
+
 work_queue = Queue()
 port_num = 0
 num_workers = 0
@@ -139,11 +141,14 @@ if __name__ == '__main__':
             for r in r_ready:
                 if r == sock:
                    connection = sock.accept()
+                   '''work_queue.put(Job("LOGIN", connection[1],str(connection[0])))"'''
                    recv_handler(connection)
                 if r == sys.stdin:
                     parse_command(sys.stdin)
+                    '''work_queue.put(Job("BUILT-IN",readline(sys.stdin).rsplit('\r\n')))'''
                 elif isinstance(r, tuple) and isinstance(r[0], socket.socket):
                     recv_handler(r)
+                    '''work_queue.put(Job("CLIENT",r[1],r[0]))'''
             rset.append(connection[0]) #we will be able to read from the connection
             wset.append(connection[0]) #we will also write to the connection
             
