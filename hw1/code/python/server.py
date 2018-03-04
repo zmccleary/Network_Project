@@ -142,6 +142,11 @@ def login(info, connection):
 
 
 def client_read(info, connection):
+    #Read from client socket
+    #info = client address
+    #connection = client socket
+    #users are keyed by connection. Verify that destination of message is a user, else EDNE
+
     
     return None
 
