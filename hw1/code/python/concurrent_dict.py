@@ -65,3 +65,11 @@ class conc_dict:
             return True
         else:
             return False
+
+    def list(self):
+        self.lock.acquire()
+        output_list = []
+        for i in self.dict:
+            output_list.append(i)
+        self.lock.release()
+        return output_list

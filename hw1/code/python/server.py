@@ -2,8 +2,9 @@ import socket
 import sys
 from threading import Thread
 from concurrent_dict import conc_dict
+from queue import Queue
 
-
+work_queue = Queue()
 port_num = 0
 num_workers = 0
 motd = ""
@@ -17,11 +18,37 @@ usage =("./server [-hv] PORT_NUMBER NUM_WORKERS MOTD\n"
 
 arg_errormsg = "\n\nImproper arg format... Terminating Program."
 
+
 #when server receives a /users command, dump contents of users to stdout
+def recv_handle(conn_sock, bufsize):
+    bytes_read = None
+    try:
+        bytes_read = recv(bufsize)
+        string_buf = bytes_read.decode().split(sep ="/r/n") 
+        formatter = []
+        index = 0
+        terminal = False
+        #create a list of strings, where any instances of only single /r/n are concatenated with following string
+        #This will enable us to check for garbage later.
+        for s in string_buf:
+            if s == "":
+                terminal = True
+            if terminal == True:
+                formatter.append("")
+                index += 1
+            else:
+                formatter[index] + s
+        
+
+
+
 
 # NOTE: may not be thread-safe, implement locks
 def users():
-    print(list(users.keys))
+    dump_list = users.list()
+    for name in dump_list:
+        print(name[0], end = ", ")
+    print("")
 
 def help():
     for s in server_commands:
@@ -55,7 +82,7 @@ def parse_args(argc, argv):
     return (port_num, num_workers,motd)
 def worker_exec(i):
     #worker threads will execute this when started
-    print("Spawned worker thread #%d",i)
+    print("Spawned worker thread #",i)
 if __name__ == '__main__':
     users = conc_dict() #store logged in users as a dictionary to allow for iterative dumps and fast insertion/collision checking
 
@@ -71,7 +98,7 @@ if __name__ == '__main__':
     try:
         sock.bind(('', port_num))
         sock.listen()
-        sock.settimeout(30)
+        sock.settimeout(10)
     except OSError:
         print("Unable to complete bind/listen.")
     except socket.herror as e:
@@ -84,7 +111,21 @@ if __name__ == '__main__':
     
     while True: #change this later
         try:
-            connection = sock.accept()
+            rset = [sock, sys.stdin] #select listening socket or stdin to read
+            wset = [] #will be filled later
+            eset = [] #not defined yet
+            r_ready,w_ready, e_ready = select(rset,wset,eset, 30)
+
+            for r in r_ready:
+                if r == sock:
+                    connection = sock.accept()
+                elif r == sys.stdin:
+                    sys.stdin.readline()
+                else issubclass(r, tuple):
+            rset.append(connection[0]) #we will be able to read from the connection
+            wset.append(connection[0]) #we will also write to the connection
+            
+            recv_handler(connection[0])
        
         except socket.timeout:
             sock.close()
