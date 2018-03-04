@@ -20,13 +20,15 @@ arg_errormsg = "\n\nImproper arg format... Terminating Program."
 
 
 #when server receives a /users command, dump contents of users to stdout
-def recv_handle(conn_sock, bufsize):
+def recv_handle(conn, bufsize, buf):
     bytes_read = None
+    conn_sock = conn[0]
+    conn_addr = conn[1]
     try:
-        bytes_read = recv(bufsize)
+        bytes_read =conn[0].recv(bufsize)
         string_buf = bytes_read.decode().split(sep ="/r/n") 
-        formatter = []
         index = 0
+        formatter = []
         terminal = False
         #create a list of strings, where any instances of only single /r/n are concatenated with following string
         #This will enable us to check for garbage later.
@@ -34,14 +36,26 @@ def recv_handle(conn_sock, bufsize):
             if s == "":
                 terminal = True
             if terminal == True:
-                formatter.append("")
+                formatter.append("/r/n/r/n")
                 index += 1
             else:
                 formatter[index] + s
         
+        for s in formatter:
+            if s.endswith('/r/n/r/n'):
+                work_queue.put(s)
+            elif formatter.index(s) == len(formatter) - 1:
+                buf.append(s) #if improper string is the last element of the list, then we will store it and see if it gets completed later.
+            else:
+                queue.put("Delete " + users.get(conn_addr)) #
 
 
-
+def parse_command(input_src):
+    command = (input_src.readline()).rstrip('/r/n ')
+    if command == '//users ' or command == '//help' or command == '//shutdown':
+        work_queue.put(command)
+    else
+        print('Please enter a valid command.')
 
 # NOTE: may not be thread-safe, implement locks
 def users():
@@ -80,9 +94,11 @@ def parse_args(argc, argv):
     num_workers = int(argv[2+flags])
     motd = (argv[3+flags])
     return (port_num, num_workers,motd)
+
 def worker_exec(i):
     #worker threads will execute this when started
     print("Spawned worker thread #",i)
+
 if __name__ == '__main__':
     users = conc_dict() #store logged in users as a dictionary to allow for iterative dumps and fast insertion/collision checking
 
@@ -95,14 +111,17 @@ if __name__ == '__main__':
 
     except OSError:
         print("Unable to create socket instance.")
+        exit(1)
     try:
         sock.bind(('', port_num))
         sock.listen()
         sock.settimeout(10)
     except OSError:
         print("Unable to complete bind/listen.")
+        exit(1)
     except socket.herror as e:
         print("Hostname error", e.errno)
+        exit(1)
     threads = []
     for x in range(num_workers):
         worker = Thread(target = worker_exec, args =(x,))
@@ -120,12 +139,13 @@ if __name__ == '__main__':
                 if r == sock:
                     connection = sock.accept()
                 elif r == sys.stdin:
-                    sys.stdin.readline()
+                    parse_command(sys.stdin)
                 else issubclass(r, tuple):
+                    recv_handler(connection)
             rset.append(connection[0]) #we will be able to read from the connection
             wset.append(connection[0]) #we will also write to the connection
             
-            recv_handler(connection[0])
+            
        
         except socket.timeout:
             sock.close()
