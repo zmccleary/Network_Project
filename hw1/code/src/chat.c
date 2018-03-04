@@ -64,7 +64,7 @@ int chat(int sockfd, rs_buf *buf, char * to, char * msg)
     Write(sockfd, tomsg, strlen(tomsg));
     handle_read(sockfd, buf, MESSAGE_TO);
     free(tomsg);
-    if(strcmp(buf->buffer, "EDNE"))
+    if(strcmp(buf->buffer, "EDNE") == 0)
         return -1;
     flush_rsbuf(buf);
     return 1;
