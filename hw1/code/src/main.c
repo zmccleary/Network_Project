@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <setjmp.h>
+#include <signal.h>
 
 char **conn_info;
 window * tail = NULL;
@@ -18,6 +20,18 @@ void exit_cleanup()
 	free(conn_info);
 }
 
+//Initiate handlers for sigsetjump
+static sigjmp_buf jumpbuf;
+static volatile sig_atomic_t canjump;
+static void sig_pipe(int signo)
+{
+    if (canjump == 0)
+        return;
+    canjump = 0;
+    siglongjmp(jumpbuf, 1);
+}
+
+
 
 int main(int argc, char **argv)
 {
@@ -25,6 +39,9 @@ int main(int argc, char **argv)
 	int sockfd;
 	atexit(exit_cleanup);
 	char verbose = 0;
+
+    if(signal(SIGPIPE, sig_pipe) == SIG_ERR)
+        client_error("SIG_PIPE failed to set.\n");
 
     rs_buf * buf = (rs_buf *)malloc(sizeof(rs_buf));
     init_rsbuf(buf, BUFSIZE);
@@ -78,7 +95,7 @@ int main(int argc, char **argv)
 
 	login(sockfd, cli_name, buf);
 
-    int maxfd = 0;
+    int maxfd = sockfd + 1;
     int maxpipe = 0;
     fd_set readset, writeset;
     struct timeval timeout;
@@ -111,7 +128,8 @@ int main(int argc, char **argv)
 
     	if(FD_ISSET(0,&readset)){
     		//something to be read from stdin
-    		fgets(buf->buffer, BUFSIZE, stdin);
+    		if(fgets(buf->buffer, BUFSIZE, stdin) == NULL)
+                client_error("Bad read in main");
             if(strncmp(buf->buffer, "/help", 5) == 0)
                 printhelp();
             else if(strncmp(buf->buffer, "/logout", 7) == 0)
@@ -147,20 +165,24 @@ int main(int argc, char **argv)
         //Check if any pipes need to be read or written to
         for(wslct = tail; wslct != NULL; wslct = wslct->prev)
         {
-            /*if(FD_ISSET(wslct->writepipe, &writeset))
+            //Set sigsetjump
+            /*if(sigsetjmp(jumpbuf, 1))
             {
-                write(wslct->writepipe, buf->buffer, buf->size);
-            }*/
+                remove_window(wslct->name);
+            }
+            canjump = 1;*/
+
+
             if(FD_ISSET(wslct->readpipe, &readset))
             {
+                flush_rsbuf(buf);
                 if(read(wslct->readpipe, buf->buffer, buf->size) == 0)
-                {
-                    remove_window(wslct->name);
-                }
+                    remove_window(wslct);
+                /*else if(strcmp(buf->buffer, "") == 0)
+                   remove_window(wslct->name)*/
                 else
-                {
                     chat(sockfd, buf, wslct->name, buf->buffer);
-                }
+                
             }
         }
     }

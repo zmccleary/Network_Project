@@ -180,15 +180,30 @@ void printMOTD(rs_buf * buf){
 void init_rsbuf(rs_buf * buf, int bufsize){
     buf->buffer = (char *)calloc(bufsize, sizeof(char));
     buf->size = bufsize;
+    buf->head = buf->buffer;
 }
 
 void realloc_rsbuf(rs_buf * buf, int bufsize){
+    buf->head = buf->buffer + buf->size;
     buf->buffer = (char *)realloc(buf->buffer, bufsize);
     buf->size += bufsize - buf->size;
 }
 
 void cleanup_rsbuf(rs_buf * buf){
     free(buf->buffer);
+}
+
+void read_rsbuf(int fd, rs_buf * buf)
+{
+    //flush_rsbuf(buf);
+    int size = buf->size - (buf->head - buf->buffer);
+    if(read(fd, buf->head, size) == size)
+    {
+        realloc_rsbuf(buf, buf->size * 2);
+        read_rsbuf(fd, buf);
+    } 
+    else 
+        return;
 }
 int list_u(char * token, int tok_len, int * terminator_read){
 
@@ -236,12 +251,14 @@ int list_u(char * token, int tok_len, int * terminator_read){
         	}
         	if(terminator_read)
         		printf("\n");
+            free(out_buf.buffer);
         	return 0;
 
 }
 
 void flush_rsbuf(rs_buf * buf){
     memset(buf->buffer, 0, buf->size);
+    buf->head = 0;
 }
 
 //Adds a window to the windows buffer
@@ -281,7 +298,7 @@ void add_window(char * name, char * message){
                 client_error("Failed to dup stdout");
         }
 
-        if(execl("/usr/bin/xterm", "/usr/bin/xterm","-hold", 
+        if(execl("/usr/bin/xterm", "/usr/bin/xterm","-T", name, "-n", name, "-hold", 
                     "-e", "./chatwindow", name, message,  NULL) < 0)
             client_error("Error executing chatwindow");
     } 
@@ -300,20 +317,18 @@ void add_window(char * name, char * message){
 }
 
 //Terminates the window which UOFF user is connected to
-void remove_window(char * name)
+void remove_window(window * curr)
 {
-    window * curr;
-    for(curr = tail; curr != NULL; curr = curr->prev);
+    
+    /*for(curr = tail; curr != NULL; curr = curr->prev);
     {
-        if(name == curr->name)
-        {
-            char msg[5] = "UOFF";
-            write(curr->writepipe, msg, strlen(msg));
+        if(strcmp(name, curr->name) == 0)
+        {*/
             close(curr->writepipe);
             close(curr->readpipe);
             rwl(curr);
-        }
-    }
+        /*}
+    }*/
 }
 
 //Adds window to the list
@@ -331,6 +346,8 @@ void rwl(window * wp)
         wp->prev->next = wp->next;
     if(wp->next != NULL)
         wp->next->prev = wp->prev;
+    if(tail == wp)
+        tail = NULL;
     free(wp);
 }
 

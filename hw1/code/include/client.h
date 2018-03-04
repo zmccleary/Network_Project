@@ -10,6 +10,7 @@ extern char ** conn_info;
 
 typedef struct{
     char * buffer;
+    char * head;
     int size;
 }rs_buf;
 
@@ -44,6 +45,7 @@ void printMOTD(rs_buf *buf);
 void init_rsbuf(rs_buf * buf, int bufsize);
 void realloc_rsbuf(rs_buf *buf, int bufsize);
 void cleanup_rsbuf(rs_buf * buf);
+void read_rsbuf(int fd, rs_buf * buf);
 
 
 int list_u(char * token, int tok_len, int *terminator_read);
@@ -53,6 +55,6 @@ void flush_rsbuf(rs_buf * buf);
 void add_window(char * name, char * message);
 void awl(window * wp);
 void rwl(window * wp);
-void remove_window(char * name);
+void remove_window(window * curr);
 
 #endif
