@@ -60,8 +60,12 @@ arg_errormsg = "\n\nImproper arg format... Terminating Program."
 '''
 def parse_command(input_src):
     command = (input_src.readline()).rstrip('\r\n ')
-    if command == '/users' or command == '/help' or command == '/shutdown':
-        work_queue.put(command)
+    if command == '/users':
+        list_users() 
+    if command == '/help':
+        help() 
+    if command == '/shutdown':
+        server_shutdown(socket);
 
 def builtin_exec(command, sock):
     if command == '/users':
@@ -71,7 +75,7 @@ def builtin_exec(command, sock):
     elif command == '/shutdown':
         shutdown(sock)
     else:
-        print('Please enter a valid command.')
+        print(command, "is not a command")
 
 # NOTE: may not be thread-safe, implement locks
 def list_users():
@@ -111,26 +115,23 @@ def parse_args(argc, argv):
     num_workers = int(argv[2+flags])
     motd = (argv[3+flags])
     return (port_num, num_workers,motd)
-
+def login():
+    return None
+def client_read():
+    return None
 def worker_exec(i, socket):
     #worker threads will execute this when started
     print("Spawned worker thread #",i)
     job = work_queue.get()
 
-    if job == '/users':
-        list_users()
-    elif job == '/help':
-        help()
-    elif job == '/shutdown':
-        server_shutdown(socket)
-
     if job.type == "BUILT-IN" : 
-        builtin_exec(job.info, socket)
+        builtin_exec(str(job.info).strip('\n'), socket)
 
     elif job.type == "LOGIN" :
-       # login()
+         login()
+
     elif job == 'CLIENT':
-       # client_read(job.info, job.connection)
+        client_read(job.info, job.connection)
     else:
         print("error")
 if __name__ == '__main__':
@@ -171,31 +172,23 @@ if __name__ == '__main__':
             print("Ready for I/O") 
             for r in r_ready:
                 if r == sock:
-
-                   connection = sock.accept()
-                   '''work_queue.put(Job("LOGIN", connection[1],str(connection[0])))"'''
-                   recv_handler(connection)
-                if r == sys.stdin:
-                    parse_command(sys.stdin)
-                    '''work_queue.put(Job("BUILT-IN",readline(sys.stdin).rsplit('\r\n')))'''
-                elif isinstance(r, tuple) and isinstance(r[0], socket.socket):
-                    recv_handler(r)
-                    '''work_queue.put(Job("CLIENT",r[1],r[0]))'''
-            rset.append(connection[0]) #we will be able to read from the connection
-            wset.append(connection[0]) #we will also write to the connection
-
                     connection = sock.accept()
-                    recv_handler(connection)
+                    new_job = Job("LOGIN", connection[1],str(connection[0]))
+                    work_queue.put(new_job)
                     rset.append(connection[0]) #we will be able to read from the connection
                     wset.append(connection[0]) #we will also write to the connection
             
+                    recv_handler(connection)
+
                 if r == sys.stdin:
-                    parse_command(sys.stdin)
-                elif isinstance(r, tuple) and isinstance(r[0], socket):
-                    recv_handler(r)
-            
-            
-       
+                    #parse_command(sys.stdin)
+                    input = (sys.stdin.readline()).rstrip('\r\n')
+                    #print("Input:", input)
+                    work_queue.put(Job("BUILT-IN",input))
+                elif isinstance(r, tuple) and isinstance(r[0], socket.socket):
+                    #recv_handler(r)
+                    work_queue.put(Job("CLIENT",r[1],r[0]))
+
         except timeout:
             sock.close()
             for t in threads:

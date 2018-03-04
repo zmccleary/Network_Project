@@ -3,6 +3,6 @@ class Job:
     
     def __init__(self, job_type, info, connection=None):
         self.type = job_type
-        self.info = info
+        self.info = str(info)
         self.connection = connection
 
