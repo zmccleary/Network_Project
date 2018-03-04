@@ -173,7 +173,7 @@ def client_read(info, connection):
     if header[0] == "LISTU\r\n\r\n":
         #send UTSIL + list of users + \r\n\r\n to client
         handle_listu(socket)
-    if header[0] == "TO":
+    if header[0] == "TO": 
         #apply messaging protocol.
         #identify receiver in users dictionary.
         #send FROM <sender> <message>\r\n\r\n if recipient exists and message is not garbage
