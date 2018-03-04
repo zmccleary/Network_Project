@@ -168,6 +168,24 @@ def client_read(info, connection):
     #info = client address
     #connection = client socket
     #users are keyed by connection. Verify that destination of message is a user, else EDNE
+    message = (connection.recv(32)).decode()
+    header = message.split(sep=" ", maxsplit=1)
+    if header[0] == "LISTU\r\n\r\n":
+        #send UTSIL + list of users + \r\n\r\n to client
+        handle_listu(socket)
+    if header[0] == "TO":
+        #apply messaging protocol.
+        #identify receiver in users dictionary.
+        #send FROM <sender> <message>\r\n\r\n if recipient exists and message is not garbage
+        handle_to(connection, header[1])
+    if header[0] == "BYE\r\n\r\n":
+        #ack with EYB\r\n\r\n and send UOFF <username>\r\n\r\n to rest of the users online
+        handle_bye(connection)
+    else;
+        #message does not have a valid header and is garbage
+        print("Protocol error:", header[0], "is not a recognized client command")
+        users.delete(connection)
+        connection.close()
 
     return None
 
