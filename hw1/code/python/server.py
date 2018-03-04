@@ -101,7 +101,7 @@ def server_shutdown(sock):
     # disconnect all users
     for key in users.list():
         tup = users.get(key)
-        usock = tup[0]
+        usock = tup[1]
         usock.close()
         # print(usock)
         # usock.shutdown(SHUT_RDWR)
