@@ -43,21 +43,31 @@ void chat_init(int sockfd, rs_buf *buf, char * to, char * msg)
     char * mesg = (char *)calloc(buf->size, sizeof(char));
     strcpy(mesg, msg);
     strcpy(name, to);
-    chat(sockfd, buf, to, msg);
-    add_window(name, mesg);
+    if(chat(sockfd, buf, to, msg) > 0)
+        add_window(name, mesg);
     free(mesg);
+    free(name);
 }
 
 
-void chat(int sockfd, rs_buf *buf, char * to, char * msg)
+int chat(int sockfd, rs_buf *buf, char * to, char * msg)
 {
     char * tomsg = (char *)calloc(buf->size, sizeof(char));
     char * tmg = strtok(msg, "\n");
+    if(tmg == NULL)
+    {
+        free(tomsg);
+        free(tmg);
+        return -1;
+    }
     sprintf(tomsg, "TO %s %s\r\n\r\n", to, tmg);
     Write(sockfd, tomsg, strlen(tomsg));
     handle_read(sockfd, buf, MESSAGE_TO);
-    flush_rsbuf(buf);
     free(tomsg);
+    if(strcmp(buf->buffer, "EDNE"))
+        return -1;
+    flush_rsbuf(buf);
+    return 1;
 }
 
 void handle_from(int sockfd, rs_buf * buf)
@@ -87,9 +97,11 @@ void write_to_window(char * user, char * message)
         add_window(user, NULL);
         wp = tail;
     }
-    char * send = (char *)calloc(strlen(message + 10), sizeof(char));
+    char * send = (char *)calloc(strlen(message) + 10, sizeof(char));
     sprintf(send, "MSG %s", message);
-    write(wp->writepipe, send, strlen(send));
+    if(write(wp->writepipe, send, strlen(send)) < 0)
+        client_error("Bad write in write_to_window\n");
+    free(send);
 }
 
 void send_uoff(char * name)
@@ -100,7 +112,8 @@ void send_uoff(char * name)
     {
         if(strcmp(wp->name, name) == 0)
         {
-            write(wp->writepipe, uoff, strlen(uoff));
+            if(write(wp->writepipe, uoff, strlen(uoff)) < 0)
+                client_error("Bad write in uoff\n");
             return;
         }
     }

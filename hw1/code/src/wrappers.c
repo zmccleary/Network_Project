@@ -145,7 +145,7 @@ int Read(int fd, rs_buf *buf, size_t buf_size,  ChatState_t state)
 
         strcat(totalbuf, buf->buffer);
 
-		total_read += nread;
+		total_read += 1;
         
         /*If the count == 0, then nread = count: which means the whole buffer was filled. To fix, we realloc
          *the buffer and set count = buf_size again
