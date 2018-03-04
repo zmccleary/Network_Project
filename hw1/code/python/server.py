@@ -102,8 +102,8 @@ def server_shutdown(sock):
     for key in users.list():
         tup = users.get(key)
         usock = tup[0]
-        # usock.close()
-        print(usock)
+        usock.close()
+        # print(usock)
         # usock.shutdown(SHUT_RDWR)
 
     # shutdown main socket
@@ -137,15 +137,39 @@ def parse_args(argc, argv):
     return (port_num, num_workers, motd)
 
 
-def login(info, connection):
+def close_client(sock):
+    sock.close()
+
+
+def login(addr, sock):
+    init = sock.recv(32).decode('utf-8')
+    if init == 'ME2U\r\n\r\n':
+        sock.send('U2EM\r\n\r\n'.encode())
+        init2 = sock.recv(32).decode('utf-8')
+        i2l = init2.split(" ")
+        if i2l[0] == 'IAM':
+            if i2l[1].endswith("\r\n\r\n"):
+                name = i2l[1].rstrip("\r\n")
+                if len(name) <= 10:
+                    if users.get(name) is None:
+                        users.put(name, (addr, sock))
+                        sock.send("MAI\r\n\r\n".encode())
+                        motdstring = "MOTD "+motd+"\r\n\r\n"
+                        sock.send(motdstring.encode())
+                        return 0
+                    else:
+                        sock.send("ETAKEN\r\n\r\n".encode())
+
+    close_client(sock)
+    return 0
+
+
+
+def client_read(addr, sock):
     return None
 
 
-def client_read(info, connection):
-    return None
-
-
-def worker_exec(i, socket, threads):
+def worker_exec(i, socket):
     # worker threads will execute this when started
     print("Spawned worker thread #", i)
     job = work_queue.get()
@@ -187,7 +211,7 @@ if __name__ == '__main__':
         exit(1)
     threads = []
     for x in range(num_workers):
-        worker = Thread(target=worker_exec, args=(x, sock, threads))
+        worker = Thread(target=worker_exec, args=(x, sock,))
         threads.append(worker)
         worker.start()
 
