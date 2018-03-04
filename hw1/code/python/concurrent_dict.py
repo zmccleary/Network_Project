@@ -26,7 +26,7 @@ class conc_dict:
         self.lock = Semaphore()
         self.num_readers = Semaphore(0)
         self.read_sem = Semaphore()
-        self.data = {"John" : "127.0.0.1"}
+        self.data = {"John" : ("0", "127.0.0.1")}
 
     def put(self, key, value):
         self.lock.acquire()
@@ -41,7 +41,7 @@ class conc_dict:
             self.lock.acquire()
         self.read_sem.release()  #Reader info has been successfully updated and other read functions can unblock     
         
-        if key in self.dict:
+        if key in self.data:
             returnValue = self.data[key]
         else:
             returnValue = None
