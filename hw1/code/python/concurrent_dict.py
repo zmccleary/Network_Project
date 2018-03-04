@@ -26,7 +26,7 @@ class conc_dict:
         self.lock = Semaphore()
         self.num_readers = Semaphore(0)
         self.read_sem = Semaphore()
-        data = {}
+        self.data = {"John" : "127.0.0.1"}
 
     def put(self, key, value):
         self.lock.acquire()
@@ -68,8 +68,6 @@ class conc_dict:
 
     def list(self):
         self.lock.acquire()
-        output_list = []
-        for i in self.dict:
-            output_list.append(i)
+        output_list = list(self.data)
         self.lock.release()
         return output_list

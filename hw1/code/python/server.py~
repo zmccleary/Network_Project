@@ -3,7 +3,8 @@ import sys
 from threading import Thread
 from concurrent_dict import conc_dict
 from queue import Queue
-
+from user import User
+from select import select
 work_queue = Queue()
 port_num = 0
 num_workers = 0
@@ -20,7 +21,7 @@ arg_errormsg = "\n\nImproper arg format... Terminating Program."
 
 
 #when server receives a /users command, dump contents of users to stdout
-def recv_handle(conn, bufsize, buf):
+'''def recv_handle(conn, bufsize, buf):
     bytes_read = None
     conn_sock = conn[0]
     conn_addr = conn[1]
@@ -47,14 +48,14 @@ def recv_handle(conn, bufsize, buf):
             elif formatter.index(s) == len(formatter) - 1:
                 buf.append(s) #if improper string is the last element of the list, then we will store it and see if it gets completed later.
             else:
-                queue.put("Delete " + users.get(conn_addr)) #
-
-
+                queue.put("Delete " + users.get(conn_addr)) #else, we send a delete request to the work queue to delete the client connection (keyed by address).
+        return None
+'''
 def parse_command(input_src):
     command = (input_src.readline()).rstrip('/r/n ')
     if command == '//users ' or command == '//help' or command == '//shutdown':
         work_queue.put(command)
-    else
+    else:
         print('Please enter a valid command.')
 
 # NOTE: may not be thread-safe, implement locks
@@ -131,17 +132,18 @@ if __name__ == '__main__':
     while True: #change this later
         try:
             rset = [sock, sys.stdin] #select listening socket or stdin to read
-            wset = [] #will be filled later
-            eset = [] #not defined yet
+            wset = [sock] #will be filled later
+            eset = [sock] #not defined yet
             r_ready,w_ready, e_ready = select(rset,wset,eset, 30)
-
+            print("Ready for I/O") 
             for r in r_ready:
                 if r == sock:
-                    connection = sock.accept()
-                elif r == sys.stdin:
+                   connection = sock.accept()
+                   recv_handler(connection)
+                if r == sys.stdin:
                     parse_command(sys.stdin)
-                else issubclass(r, tuple):
-                    recv_handler(connection)
+                elif isinstance(r, tuple) and isinstance(r[0], socket.socket):
+                    recv_handler(r)
             rset.append(connection[0]) #we will be able to read from the connection
             wset.append(connection[0]) #we will also write to the connection
             
@@ -154,6 +156,7 @@ if __name__ == '__main__':
             print("Timeout reached. Terminating program.")
             exit(1)
         except OSError as e:
-            print("Error ", e.errno)
+            print("Error ", e.errno, e.strerror)
+            exit(1)
 
             
