@@ -82,6 +82,7 @@ int Read(int fd, rs_buf *buf, size_t buf_size,  ChatState_t state)
     char * uoff_temp = "UOFF";
     char * from_temp = "FROM";
     char * edne_temp = "EDNE";
+    char * etaken_temp = "ETAKEN";
 
 	int temp_len;
 	int min = 0;
@@ -132,14 +133,15 @@ int Read(int fd, rs_buf *buf, size_t buf_size,  ChatState_t state)
 		/*At this point, we have some bytes in buf. 
 		*Parse the buffer to make sure that it starts with template.
 		*/
-        if(total_read == (4 > temp_len ? 4 : temp_len) && state != MOTD)
+        if(total_read == /*(6 > temp_len ? 6 : temp_len)*/6 && state != MOTD)
         {
-		    min =  4 < temp_len ? 4 : temp_len;
-
+		    //min =  6 < temp_len ? 6 : temp_len;
+            min = temp_len;
             //If it is not the correct template message, or a uoff message, or a from message, it is garbage
 		    if(strncmp(totalbuf, template, min) != 0 && strncmp(totalbuf, uoff_temp, 4) != 0 
                     && strncmp(totalbuf, from_temp, 4) != 0 
-                    && strncmp(totalbuf, edne_temp, 4) != 0)
+                    && strncmp(totalbuf, edne_temp, 4) != 0
+                    && strncmp(totalbuf, etaken_temp, 6) != 0)
                 return -1;
         }
 

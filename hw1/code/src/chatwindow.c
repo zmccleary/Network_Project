@@ -15,7 +15,7 @@ window * tail = NULL;
 int main(int argc, char* argv[]){
 
     char * name = argv[1];
-    printf("\x1B[36mYou are now chatting with %s:\n\n", name);
+    printf("\x1B[36mYou are now chatting with %s:\n", name);
     if(argv[2] != NULL)
         printf("%s\n", argv[2]);
     rs_buf * buf = (rs_buf *)malloc(sizeof(rs_buf));
@@ -55,8 +55,9 @@ readp:
             else if (strcmp(header, "MSG") == 0)
             {
                 char * message = strtok(NULL, "\r");
-                printf("\x1B[32m<%s>: %s", name, message);
-                printf("\x1B[36m\n");
+                printf("\x1B[32m\n> %s", message);
+                printf("\x1B[36m\n< ");
+                fflush(stdout);
             }
             
 
@@ -74,7 +75,16 @@ reads:
                 goto reads;
             }
             if(buf->buffer != NULL)
-                write(4, buf->buffer, strlen(buf->buffer)); 
+            {
+                if(strcmp(buf->buffer, "/close\n") == 0)
+                {
+                    cleanup_rsbuf(buf);
+                    exit(0);
+                }
+                write(4, buf->buffer, strlen(buf->buffer));
+                printf("< ");
+                fflush(stdout);
+            } 
         }
 
     }
