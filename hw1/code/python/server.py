@@ -7,7 +7,6 @@ from queue import Queue
 from user import User
 from select import select
 
-users = conc_dict()
 
 from job import Job
 
@@ -137,6 +136,65 @@ def parse_args(argc, argv):
     return (port_num, num_workers, motd)
 
 
+def get_name_by_sock(sock):
+    for name in users.list():
+        if users.get(name)[1] == sock:
+            return name
+
+    else:
+        return False
+
+def handle_bye(sock):
+    # get the name of the person logging off and delete the socket
+    logoff = get_name_by_sock(sock)
+
+    # send EYB and close socket, delete from user dict
+    sock.send("EYB\r\n\r\n".encode())
+    sock.close()
+    users.delete(logoff)
+
+    # send UOFF messages to every other client
+    for name in users.list():
+        socksnd = users.get(name)[1]
+        sndmsg = 'UOFF ' + logoff + "\r\n\r\n"
+        socksnd.send(sndmsg.encode())
+
+def handle_listu(sock):
+    message = "UTSIL "+ " ".join(users.list()) + "\r\n\r\n"
+    sock.send(message.encode())
+
+def handle_to(sock: socket, message: str):
+    # get the name of the client who this socket belongs to
+    fromname = get_name_by_sock(sock)
+
+    # Decode the message from <dest> <mesg> and send it to the dest client
+    splitmessage = message.split(" ")
+    toname = splitmessage[0]
+    destsock = users.get(toname)[1]
+    if destsock is None:
+        edne = "EDNE "+toname+"\r\n\r\n"
+        sock.send(edne.encode())
+        return 0
+    else:
+        # read the whole mesage and write to the dest
+        frommsg = "FROM " + fromname + splitmessage[1]
+        while "\r\n\r\n" not in frommsg:
+            frommsg = frommsg + sock.recv(32).decode("utf-8")
+        destsock.send(frommsg.encode())
+
+        # get a MORF and send an OT
+        morf = "MORF "+fromname+"\r\n\r\n"
+        if destsock.recv(32).decode("utf-8") == morf:
+            ot = "OT "+toname+"\r\n\r\n"
+            sock.send(ot.encode())
+            return 0
+        else:
+            print("Client sent garbage message")
+            destsock.close()
+            return 0
+
+
+
 def close_client(sock):
     sock.close()
 
@@ -240,7 +298,7 @@ if __name__ == '__main__':
                     input = (sys.stdin.readline()).rstrip('\r\n')
                     print("Input:", input)
                     work_queue.put(Job("BUILT-IN", input))
-                elif isinstance(r, tuple) and isinstance(r[0], socket.socket):
+                if isinstance(r, tuple) and isinstance(r[1], socket):
                     # recv_handler(r)
                     work_queue.put(Job("CLIENT", r[1], r[0]))
 
