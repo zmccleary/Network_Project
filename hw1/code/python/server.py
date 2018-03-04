@@ -1,10 +1,11 @@
-import socket
+from socket import *
 import sys
 from threading import Thread
 from concurrent_dict import conc_dict
 from queue import Queue
 from user import User
 from select import select
+users = conc_dict()
 work_queue = Queue()
 port_num = 0
 num_workers = 0
@@ -52,17 +53,18 @@ arg_errormsg = "\n\nImproper arg format... Terminating Program."
         return None
 '''
 def parse_command(input_src):
-    command = (input_src.readline()).rstrip('/r/n ')
-    if command == '//users ' or command == '//help' or command == '//shutdown':
+    command = (input_src.readline()).rstrip('\r\n ')
+    if command == '/users' or command == '/help' or command == '/shutdown':
         work_queue.put(command)
     else:
         print('Please enter a valid command.')
 
 # NOTE: may not be thread-safe, implement locks
-def users():
+def list_users():
     dump_list = users.list()
-    for name in dump_list:
-        print(name[0], end = ", ")
+    print(dump_list)
+   # for name in dump_list:
+    #    print(name[0], end = ", ")
     print("")
 
 def help():
@@ -70,9 +72,9 @@ def help():
         print(s, end="; ")
     print("")
 
-def server_shutdown():
+def server_shutdown(sock):
     #disconnect all users, close open sockets
-    return None
+    sock.shutdown(SHUT_RDWR)
 
 def parse_args(argc, argv):
     flags = 0
@@ -96,19 +98,27 @@ def parse_args(argc, argv):
     motd = (argv[3+flags])
     return (port_num, num_workers,motd)
 
-def worker_exec(i):
+def worker_exec(i, socket):
     #worker threads will execute this when started
     print("Spawned worker thread #",i)
+    job = work_queue.get()
+
+    if job == '/users':
+        list_users()
+    elif job == '/help':
+        help()
+    elif job == '/shutdown':
+        server_shutdown(socket)
 
 if __name__ == '__main__':
-    users = conc_dict() #store logged in users as a dictionary to allow for iterative dumps and fast insertion/collision checking
+     #store logged in users as a dictionary to allow for iterative dumps and fast insertion/collision checking
 
     argc = len(sys.argv)
 
     port_num, num_workers, motd = parse_args(argc,sys.argv)
    
     try:
-        sock = socket.socket()
+        sock = socket()
 
     except OSError:
         print("Unable to create socket instance.")
@@ -120,12 +130,12 @@ if __name__ == '__main__':
     except OSError:
         print("Unable to complete bind/listen.")
         exit(1)
-    except socket.herror as e:
+    except herror as e:
         print("Hostname error", e.errno)
         exit(1)
     threads = []
     for x in range(num_workers):
-        worker = Thread(target = worker_exec, args =(x,))
+        worker = Thread(target = worker_exec, args =(x,sock,))
         threads.append(worker)
         worker.start()
     
@@ -138,18 +148,19 @@ if __name__ == '__main__':
             print("Ready for I/O") 
             for r in r_ready:
                 if r == sock:
-                   connection = sock.accept()
-                   recv_handler(connection)
+                    connection = sock.accept()
+                    recv_handler(connection)
+                    rset.append(connection[0]) #we will be able to read from the connection
+                    wset.append(connection[0]) #we will also write to the connection
+            
                 if r == sys.stdin:
                     parse_command(sys.stdin)
-                elif isinstance(r, tuple) and isinstance(r[0], socket.socket):
+                elif isinstance(r, tuple) and isinstance(r[0], socket):
                     recv_handler(r)
-            rset.append(connection[0]) #we will be able to read from the connection
-            wset.append(connection[0]) #we will also write to the connection
             
             
        
-        except socket.timeout:
+        except timeout:
             sock.close()
             for t in threads:
                 t.join()
