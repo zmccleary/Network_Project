@@ -142,24 +142,26 @@ def login(info, connection):
 
 
 def client_read(info, connection):
+    
     return None
 
 
 def worker_exec(i, socket, threads):
     # worker threads will execute this when started
     print("Spawned worker thread #", i)
-    job = work_queue.get()
+    while True:
+        job = work_queue.get()
 
-    if job.type == "BUILT-IN":
-        builtin_exec(str(job.info).strip('\n'), socket)
+        if job.type == "BUILT-IN":
+            builtin_exec(str(job.info).strip('\n'), socket)
 
-    elif job.type == "LOGIN":
-        login(job.info, job.connection)
+        elif job.type == "LOGIN":
+            login(job.info, job.connection)
 
-    elif job == 'CLIENT':
-        client_read(job.info, job.connection)
-    else:
-        print("error")
+        elif job == 'CLIENT':
+            client_read(job.info, job.connection)
+        else:
+            print("error")
 
 
 if __name__ == '__main__':
@@ -213,7 +215,7 @@ if __name__ == '__main__':
                 if r == sys.stdin:
                     # parse_command(sys.stdin)
                     input = (sys.stdin.readline()).rstrip('\r\n')
-                    # print("Input:", input)
+                    print("Input:", input)
                     work_queue.put(Job("BUILT-IN", input))
                 elif isinstance(r, tuple) and isinstance(r[0], socket.socket):
                     # recv_handler(r)
