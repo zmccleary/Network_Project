@@ -86,7 +86,7 @@ if __name__ == '__main__':
         try:
             connection = sock.accept()
        
-        except socket.timeout:
+       except socket.timeout:
             sock.close()
             for t in threads:
                 t.join()
