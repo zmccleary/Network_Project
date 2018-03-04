@@ -57,10 +57,13 @@ arg_errormsg = "\n\nImproper arg format... Terminating Program."
                 queue.put("Delete " + users.get(conn_addr)) #else, we send a delete request to the work queue to delete the client connection (keyed by address).
         return None
 '''
-def parse_command(input_src):
-    command = (input_src.readline()).rstrip('\r\n ')
-    if command == '/users' or command == '/help' or command == '/shutdown':
-        work_queue.put(command)
+def builtin_exec(command, sock):
+    if command == '/users':
+        list_users()
+    elif command == '/help':
+        help()
+    elif command == '/shutdown':
+        shutdown(sock)
     else:
         print('Please enter a valid command.')
 
@@ -108,13 +111,15 @@ def worker_exec(i, socket):
     print("Spawned worker thread #",i)
     job = work_queue.get()
 
-    if job == '/users':
-        list_users()
-    elif job == '/help':
-        help()
-    elif job == '/shutdown':
-        server_shutdown(socket)
+    if job.type == "BUILT-IN" : 
+        builtin_exec(job.info, socket)
 
+    elif job.type == "LOGIN" :
+       # login()
+    elif job == 'CLIENT':
+       # client_read(job.info, job.connection)
+    else:
+        print("error")
 if __name__ == '__main__':
      #store logged in users as a dictionary to allow for iterative dumps and fast insertion/collision checking
 
