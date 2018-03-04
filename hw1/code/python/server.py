@@ -299,6 +299,7 @@ if __name__ == '__main__':
         threads.append(worker)
         worker.start()
 
+    # rsockset = []
     while not shutdown:  # change this later
         try:
             rset = [sock, sys.stdin] # select listening socket or stdin to read
@@ -328,7 +329,8 @@ if __name__ == '__main__':
                     work_queue.put(Job("BUILT-IN", input, None))
                 if isinstance(r, socket) and r != sock:
                     # recv_handler(r)
-                    work_queue.put(Job("CLIENT", "", r))
+                    if r.fileno() > 0:
+                        work_queue.put(Job("CLIENT", "", r))
 
         except timeout:
             sock.close()
