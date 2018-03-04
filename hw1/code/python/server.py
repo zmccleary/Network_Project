@@ -6,6 +6,12 @@ from queue import Queue
 from user import User
 from select import select
 users = conc_dict()
+
+from job import Job
+
+
+users = conc_dict()
+
 work_queue = Queue()
 port_num = 0
 num_workers = 0
@@ -56,6 +62,14 @@ def parse_command(input_src):
     command = (input_src.readline()).rstrip('\r\n ')
     if command == '/users' or command == '/help' or command == '/shutdown':
         work_queue.put(command)
+
+def builtin_exec(command, sock):
+    if command == '/users':
+        list_users()
+    elif command == '/help':
+        help()
+    elif command == '/shutdown':
+        shutdown(sock)
     else:
         print('Please enter a valid command.')
 
@@ -110,6 +124,15 @@ def worker_exec(i, socket):
     elif job == '/shutdown':
         server_shutdown(socket)
 
+    if job.type == "BUILT-IN" : 
+        builtin_exec(job.info, socket)
+
+    elif job.type == "LOGIN" :
+       # login()
+    elif job == 'CLIENT':
+       # client_read(job.info, job.connection)
+    else:
+        print("error")
 if __name__ == '__main__':
      #store logged in users as a dictionary to allow for iterative dumps and fast insertion/collision checking
 
@@ -148,6 +171,19 @@ if __name__ == '__main__':
             print("Ready for I/O") 
             for r in r_ready:
                 if r == sock:
+
+                   connection = sock.accept()
+                   '''work_queue.put(Job("LOGIN", connection[1],str(connection[0])))"'''
+                   recv_handler(connection)
+                if r == sys.stdin:
+                    parse_command(sys.stdin)
+                    '''work_queue.put(Job("BUILT-IN",readline(sys.stdin).rsplit('\r\n')))'''
+                elif isinstance(r, tuple) and isinstance(r[0], socket.socket):
+                    recv_handler(r)
+                    '''work_queue.put(Job("CLIENT",r[1],r[0]))'''
+            rset.append(connection[0]) #we will be able to read from the connection
+            wset.append(connection[0]) #we will also write to the connection
+
                     connection = sock.accept()
                     recv_handler(connection)
                     rset.append(connection[0]) #we will be able to read from the connection
