@@ -7,8 +7,6 @@ from queue import Queue
 from user import User
 from select import select
 
-users = conc_dict()
-
 from job import Job
 
 users = conc_dict()
@@ -70,6 +68,7 @@ def parse_command(input_src):
         server_shutdown(socket)
 '''
 
+
 def builtin_exec(command, sock):
     if command == '/users':
         list_users()
@@ -112,8 +111,6 @@ def server_shutdown(sock):
     os._exit(0)
 
 
-
-
 def parse_args(argc, argv):
     flags = 0
     if argc < 2:
@@ -137,6 +134,57 @@ def parse_args(argc, argv):
     return (port_num, num_workers, motd)
 
 
+def get_name_by_sock(sock):
+    for name in users.list():
+        if users.get(name)[1] == sock:
+            return name
+
+    else:
+        return False
+
+
+def handle_bye(sock):
+    # get the name of the person logging off and delete the socket
+    logoff = get_name_by_sock(sock)
+
+    # send EYB and close socket, delete from user dict
+    sock.send("EYB\r\n\r\n".encode())
+    sock.close()
+    users.delete(logoff)
+
+    # send UOFF messages to every other client
+    for name in users.list():
+        socksnd = users.get(name)[1]
+        sndmsg = 'UOFF ' + logoff + "\r\n\r\n"
+        socksnd.send(sndmsg.encode())
+
+
+def handle_listu(sock):
+    message = "UTSIL " + " ".join(users.list()) + "\r\n\r\n"
+    sock.send(message.encode())
+
+
+def handle_to(sock: socket, message: str):
+    # get the name of the client who this socket belongs to
+    fromname = get_name_by_sock(sock)
+
+    # Decode the message from <dest> <mesg> and send it to the dest client
+    splitmessage = message.split(" ", maxsplit=1)
+    toname = splitmessage[0]
+    destsock = users.get(toname)[1]
+    if destsock is None:
+        edne = "EDNE " + toname + "\r\n\r\n"
+        sock.send(edne.encode())
+        return 0
+    else:
+        # read the whole mesage and write to the dest
+        frommsg = "FROM " + fromname + " " + splitmessage[1]
+        while "\r\n\r\n" not in frommsg:
+            frommsg = frommsg + sock.recv(32).decode("utf-8")
+        destsock.send(frommsg.encode())
+        return 0
+
+
 def close_client(sock):
     sock.close()
 
@@ -154,7 +202,7 @@ def login(addr, sock):
                     if users.get(name) is None:
                         users.put(name, (addr, sock))
                         sock.send("MAI\r\n\r\n".encode())
-                        motdstring = "MOTD "+motd+"\r\n\r\n"
+                        motdstring = "MOTD " + motd + "\r\n\r\n"
                         sock.send(motdstring.encode())
                         return 0
                     else:
@@ -163,29 +211,43 @@ def login(addr, sock):
     close_client(sock)
     return 0
 
+
+def handle_morf(sock, message: str):
+    fromname = get_name_by_sock(sock)
+    toname = message.rstrip("\r\n")
+    destsock = users.get(toname)[1]
+    ot = "OT " + fromname + "\r\n\r\n"
+    destsock.send(ot.encode())
+    return 0
+
+
 def client_read(info, connection):
-    #Read from client socket
-    #info = client address
-    #connection = client socket
-    #users are keyed by connection. Verify that destination of message is a user, else EDNE
+    # Read from client socket
+    # info = client address
+    # connection = client socket
+    # users are keyed by connection. Verify that destination of message is a user, else EDNE
     message = (connection.recv(32)).decode()
     header = message.split(sep=" ", maxsplit=1)
     if header[0] == "LISTU\r\n\r\n":
         #send UTSIL + list of users + \r\n\r\n to client
-        handle_listu(socket)
-    if header[0] == "TO": 
-        #apply messaging protocol.
-        #identify receiver in users dictionary.
-        #send FROM <sender> <message>\r\n\r\n if recipient exists and message is not garbage
+        handle_listu(connection)
+    elif header[0] == "TO":
+        # apply messaging protocol.
+        # identify receiver in users dictionary.
+        # send FROM <sender> <message>\r\n\r\n if recipient exists and message is not garbage
         handle_to(connection, header[1])
-    if header[0] == "BYE\r\n\r\n":
-        #ack with EYB\r\n\r\n and send UOFF <username>\r\n\r\n to rest of the users online
+    elif header[0] == "BYE\r\n\r\n":
+        # ack with EYB\r\n\r\n and send UOFF <username>\r\n\r\n to rest of the users online
         handle_bye(connection)
-    else;
-        #message does not have a valid header and is garbage
+    elif header[0] == "MORF":
+        handle_morf(connection, header[1])
+    elif header[0] != "":
+        # message does not have a valid header and is garbage
         print("Protocol error:", header[0], "is not a recognized client command")
-        users.delete(connection)
-        connection.close()
+        name = get_name_by_sock(connection)
+        if name is not None:
+            users.delete(name)
+            connection.close()
 
     return None
 
@@ -202,7 +264,7 @@ def worker_exec(i, socket):
         elif job.type == "LOGIN":
             login(job.info, job.connection)
 
-        elif job == 'CLIENT':
+        elif job.type == 'CLIENT':
             client_read(job.info, job.connection)
         else:
             print("error")
@@ -237,13 +299,17 @@ if __name__ == '__main__':
         threads.append(worker)
         worker.start()
 
+    # rsockset = []
     while not shutdown:  # change this later
         try:
-            rset = [sock, sys.stdin]  # select listening socket or stdin to read
+            rset = [sock, sys.stdin] # select listening socket or stdin to read
             wset = [sock]  # will be filled later
             eset = [sock]  # not defined yet
-            r_ready, w_ready, e_ready = select(rset, wset, eset, 30)
-            print("Ready for I/O")
+            for name in users.list():
+                rset.append(users.get(name)[1])
+            tout = 1
+            r_ready, w_ready, e_ready = select(rset, wset, eset, tout)
+            # print("Ready for I/O")
             for r in r_ready:
                 if r == sock:
                     connection = sock.accept()
@@ -260,10 +326,11 @@ if __name__ == '__main__':
                     # parse_command(sys.stdin)
                     input = (sys.stdin.readline()).rstrip('\r\n')
                     print("Input:", input)
-                    work_queue.put(Job("BUILT-IN", input))
-                elif isinstance(r, tuple) and isinstance(r[0], socket.socket):
+                    work_queue.put(Job("BUILT-IN", input, None))
+                if isinstance(r, socket) and r != sock:
                     # recv_handler(r)
-                    work_queue.put(Job("CLIENT", r[1], r[0]))
+                    if r.fileno() > 0:
+                        work_queue.put(Job("CLIENT", "", r))
 
         except timeout:
             sock.close()
