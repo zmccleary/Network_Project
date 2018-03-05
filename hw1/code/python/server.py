@@ -127,13 +127,15 @@ def parse_args(argc, argv):
     if sys.argv[1] == '-v':
         flags = 1
 
-    if argc - flags != 4:
+    if argc - flags < 4:
         print(usage, arg_errormsg)
         exit(1)
 
     port_num = int(argv[1 + flags])
     num_workers = int(argv[2 + flags])
-    motd = (argv[3 + flags])
+    motd = ""
+    for arg in argv[3+flags:]:
+        motd += (arg) + " "
     return (port_num, num_workers, motd)
 
 
@@ -241,12 +243,14 @@ def client_read(info, connection):
     # users are keyed by connection. Verify that destination of message is a user, else EDNE
     if get_name_by_sock(connection) is None:
         return None
+
     try:
         message = (connection.recv(32, MSG_DONTWAIT)).decode()
     except BlockingIOError:
         return 0
     except OSError:
         return None
+
     header = message.split(sep=" ", maxsplit=1)
     if header[0] == "LISTU\r\n\r\n":
         #send UTSIL + list of users + \r\n\r\n to client
