@@ -109,6 +109,13 @@ def help():
 def server_shutdown(sock):
     # disconnect all users, close open sockets
     # disconnect all users
+    global rsetsock
+    if len(rsetsock) == 0:
+        if sock.fileno() > 0:
+            sock.close()
+        os._exit(0)
+
+
     for key in users.list():
         tup = users.get(key)
         usock = tup[1]
@@ -221,7 +228,7 @@ def close_client(sock):
     global verbose
     if sock in rsetsock:
         if verbose:
-            print("\x1B[1;34mRemoved socket " + sock.fileno())
+            print("\x1B[1;34mRemoved socket " + str(sock.fileno()))
         rsetsock.remove(sock)
        
 
@@ -334,7 +341,9 @@ def client_read(info, connection):
 
 def worker_exec(i, socket):
     # worker threads will execute this when started
-    print("Spawned worker thread #", i)
+    global verbose
+    if verbose:
+        print("Spawned worker thread #", i)
     global byelock
     while True:
         job = work_queue.get()
@@ -431,6 +440,7 @@ if __name__ == '__main__':
             print("\x1B[1;31mTimeout reached. Terminating program.")
             exit(1)
         except OSError as e:
+            sock.close()
             print("\x1B[1;31mError ", e.errno, e.strerror)
             exit(1)
 
