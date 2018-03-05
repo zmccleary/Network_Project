@@ -230,6 +230,10 @@ def login(addr, sock):
 def handle_morf(sock, message: str):
     fromname = get_name_by_sock(sock)
     toname = message.rstrip("\r\n")
+    '''if users.get(toname) is None:
+        print("FUCK")
+    else:
+        print("YAY " + fromname)'''
     destsock = users.get(toname)[1]
     ot = "OT " + fromname + "\r\n\r\n"
     destsock.send(ot.encode())
@@ -241,11 +245,13 @@ def client_read(info, connection):
     # info = client address
     # connection = client socket
     # users are keyed by connection. Verify that destination of message is a user, else EDNE
-    if get_name_by_sock(connection) is None:
+    if get_name_by_sock(connection) is None or sock.fileno() < 0:
         return None
 
     try:
-        message = (connection.recv(32, MSG_DONTWAIT)).decode()
+        message = ""
+        while "\r\n\r\n" not in message:
+            message = message + (connection.recv(1, MSG_DONTWAIT)).decode()
     except BlockingIOError:
         return 0
     except OSError:
@@ -301,9 +307,10 @@ def worker_exec(i, socket):
             global rsetsock
             if job.connection in rsetsock:
                 byelock.acquire()
-                rsetsock.remove(job.connection)
-                if client_read(job.info, job.connection) is not None:
-                    rsetsock.append(job.connection)
+                if job.connection in rsetsock:
+                    rsetsock.remove(job.connection)
+                    if client_read(job.info, job.connection) is not None:
+                        rsetsock.append(job.connection)
                 byelock.release()
 
         else:
@@ -342,6 +349,7 @@ if __name__ == '__main__':
     # rsockset = []
     while not shutdown:  # change this later
         try:
+            byelock.acquire()
             rset = [sock, sys.stdin] + rsetsock# select listening socket or stdin to read
             #wset = [sock]  # will be filled later
             eset = [sock]  # not defined yet
@@ -350,6 +358,7 @@ if __name__ == '__main__':
                 # rset.append(users.get(name)[1])
             tout = 1
             r_ready,w_ready, e_ready = select(rset, [],eset, 0)
+            byelock.release()
             # print("Ready for I/O")
             for r in r_ready:
                 if r == sock:
