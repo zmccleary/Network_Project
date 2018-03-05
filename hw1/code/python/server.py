@@ -10,6 +10,7 @@ from select import select
 
 from job import Job
 
+verbose = False
 byelock = Lock()
 users = conc_dict()
 shutdown = False
@@ -73,14 +74,21 @@ def parse_command(input_src):
 
 
 def builtin_exec(command, sock):
+    global verbose
     if command == '/users':
+        if verbose:
+            print("\x1B[1;34m/users")
         list_users()
     elif command == '/help':
+        if verbose:
+            print("\x1B[1;34m/help")
         help()
     elif command == '/shutdown':
+        if verbose:
+            print("\x1B[1;34m/shutdown")
         server_shutdown(sock)
     else:
-        print(command, "is not a command")
+        print("\x1B[1;31m",command, "is not a command")
 
 
 # NOTE: may not be thread-safe, implement locks
@@ -115,9 +123,10 @@ def server_shutdown(sock):
 
 
 def parse_args(argc, argv):
+    global verbose 
     flags = 0
     if argc < 2:
-        print(usage, arg_errormsg)
+        print("\x1B[1;31m"+usage, arg_errormsg)
         exit(1)
 
     if sys.argv[1] == "-h":
@@ -126,9 +135,10 @@ def parse_args(argc, argv):
 
     if sys.argv[1] == '-v':
         flags = 1
+        verbose = True
 
     if argc - flags < 4:
-        print(usage, arg_errormsg)
+        print("\x1B[1;31m" + usage, arg_errormsg)
         exit(1)
 
     port_num = int(argv[1 + flags])
@@ -152,6 +162,7 @@ def handle_bye(sock):
     # get the name of the person logging off and delete the socket
     # global byelock
     # byelock.acquire()
+    global verbose
     logoff = get_name_by_sock(sock)
 
     # send EYB and close socket, delete from user dict
@@ -163,19 +174,26 @@ def handle_bye(sock):
     for name in users.list():
         socksnd = users.get(name)[1]
         sndmsg = 'UOFF ' + logoff + "\r\n\r\n"
+        if verbose:
+            print("\x1B[1;34mDest: " + name,sndmsg)
         socksnd.send(sndmsg.encode())
     # byelock.release()
 
 
 def handle_listu(sock):
+    global verbose
     message = "UTSIL " + " ".join(users.list()) + "\r\n\r\n"
+    if verbose:
+        print("\x1B[1;34m" +message)
     sock.send(message.encode())
 
 
 def handle_to(sock: socket, message: str):
     # get the name of the client who this socket belongs to
+    global verbose
     fromname = get_name_by_sock(sock)
-    print("From:", fromname)
+    if verbose:
+        print("\x1B[1;34mFrom:", fromname)
 
     # Decode the message from <dest> <mesg> and send it to the dest client
     splitmessage = message.split(" ", maxsplit=1)
@@ -192,42 +210,64 @@ def handle_to(sock: socket, message: str):
     frommsg = "FROM " + fromname + " " + splitmessage[1]
     while "\r\n\r\n" not in frommsg:
         frommsg = frommsg + (sock.recv(32)).decode("utf-8")
+    if verbose:
+        print("\x1B[1;34m" + frommsg)
     destsock.send(frommsg.encode())
     return 0
 
 
 def close_client(sock):
     global rsetsock
+    global verbose
     if sock in rsetsock:
+        if verbose:
+            print("\x1B[1;34mRemoved socket " + sock.fileno())
         rsetsock.remove(sock)
+       
+
     sock.close()
 
 
 def login(addr, sock):
+    global verbose
     init = sock.recv(32).decode('utf-8')
+    if verbose:
+        print("\x1B[1;34m" + init)
     if init == 'ME2U\r\n\r\n':
         sock.send('U2EM\r\n\r\n'.encode())
+        if verbose:
+            print('\x1B[1;34mU2EM\r\n\r\n')
         init2 = sock.recv(32).decode('utf-8')
+
         i2l = init2.split(" ")
         if i2l[0] == 'IAM':
             if i2l[1].endswith("\r\n\r\n"):
                 name = i2l[1].rstrip("\r\n")
                 if len(name) <= 10:
                     if users.get(name) is None:
+                        if verbose:
+                            print("\x1B[1;34m" + i2l[0] +" " +name)
                         users.put(name, (addr, sock))
                         sock.send("MAI\r\n\r\n".encode())
+                        if verbose:
+                            print("\x1B[1;34m"+"MAI")
                         motdstring = "MOTD " + motd + "\r\n\r\n"
+                        if verbose:
+                            print("\x1B[1;34m" + "MOTD " + motd)
                         sock.send(motdstring.encode())
                         global rsetsock
                         rsetsock.append(sock)
                         return 0
                     else:
                         sock.send("ETAKEN\r\n\r\n".encode())
+                        if verbose:
+                            print("\x1B[1;34m" + "ETAKEN")
     sock.close()
     return 0
 
 
 def handle_morf(sock, message: str):
+    global verbose
     fromname = get_name_by_sock(sock)
     toname = message.rstrip("\r\n")
     '''if users.get(toname) is None:
@@ -236,6 +276,8 @@ def handle_morf(sock, message: str):
         print("YAY " + fromname)'''
     destsock = users.get(toname)[1]
     ot = "OT " + fromname + "\r\n\r\n"
+    if verbose:
+        print("\x1B[1;34m" + ot)
     destsock.send(ot.encode())
     return 0
 
@@ -279,7 +321,7 @@ def client_read(info, connection):
 
     elif header[0] != "":
         # message does not have a valid header and is garbage
-        print("Protocol error:", header[0], "is not a recognized client command")
+        print("\x1B[1;31mProtocol error:", header[0], "is not a recognized client command")
         name = get_name_by_sock(connection)
         if name is not None:
             users.delete(name)
@@ -314,7 +356,7 @@ def worker_exec(i, socket):
                 byelock.release()
 
         else:
-            print("error")
+            print("\x1B[1;31merror")
 
 
 if __name__ == '__main__':
@@ -328,17 +370,17 @@ if __name__ == '__main__':
         sock = socket()
 
     except OSError:
-        print("Unable to create socket instance.")
+        print("\x1B[1;31mUnable to create socket instance.")
         exit(1)
     try:
         sock.bind(('', port_num))
         sock.listen()
         sock.settimeout(10)
     except OSError:
-        print("Unable to complete bind/listen.")
+        print("\x1B[1;31mUnable to complete bind/listen.")
         exit(1)
     except herror as e:
-        print("Hostname error", e.errno)
+        print("\x1B[1;31mHostname error", e.errno)
         exit(1)
     threads = []
     for x in range(num_workers):
@@ -386,10 +428,10 @@ if __name__ == '__main__':
             sock.close()
             for t in threads:
                 t.join()
-            print("Timeout reached. Terminating program.")
+            print("\x1B[1;31mTimeout reached. Terminating program.")
             exit(1)
         except OSError as e:
-            print("Error ", e.errno, e.strerror)
+            print("\x1B[1;31mError ", e.errno, e.strerror)
             exit(1)
 
     print("Server shutting down")
