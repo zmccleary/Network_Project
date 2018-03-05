@@ -9,6 +9,7 @@ from select import select
 
 from job import Job
 
+verbose = False
 users = conc_dict()
 shutdown = False
 work_queue = Queue()
@@ -77,7 +78,7 @@ def builtin_exec(command, sock):
     elif command == '/shutdown':
         server_shutdown(sock)
     else:
-        print(command, "is not a command")
+        print("\x1B[1;31m",command, "is not a command")
 
 
 # NOTE: may not be thread-safe, implement locks
@@ -112,6 +113,7 @@ def server_shutdown(sock):
 
 
 def parse_args(argc, argv):
+    global verbose 
     flags = 0
     if argc < 2:
         print(usage, arg_errormsg)
@@ -123,6 +125,7 @@ def parse_args(argc, argv):
 
     if sys.argv[1] == '-v':
         flags = 1
+        verbose = True
 
     if argc - flags < 4:
         print(usage, arg_errormsg)
@@ -252,7 +255,7 @@ def client_read(info, connection):
         handle_morf(connection, header[1])
     elif header[0] != "":
         # message does not have a valid header and is garbage
-        print("Protocol error:", header[0], "is not a recognized client command")
+        print("\x1B[1;31mProtocol error:", header[0], "is not a recognized client command")
         name = get_name_by_sock(connection)
         if name is not None:
             users.delete(name)
@@ -276,7 +279,7 @@ def worker_exec(i, socket):
         elif job.type == 'CLIENT':
             client_read(job.info, job.connection)
         else:
-            print("error")
+            print("\x1B[1;31merror")
 
 
 if __name__ == '__main__':
@@ -290,17 +293,17 @@ if __name__ == '__main__':
         sock = socket()
 
     except OSError:
-        print("Unable to create socket instance.")
+        print("\x1B[1;31mUnable to create socket instance.")
         exit(1)
     try:
         sock.bind(('', port_num))
         sock.listen()
         sock.settimeout(10)
     except OSError:
-        print("Unable to complete bind/listen.")
+        print("\x1B[1;31mUnable to complete bind/listen.")
         exit(1)
     except herror as e:
-        print("Hostname error", e.errno)
+        print("\x1B[1;31mHostname error", e.errno)
         exit(1)
     threads = []
     for x in range(num_workers):
@@ -346,10 +349,10 @@ if __name__ == '__main__':
             sock.close()
             for t in threads:
                 t.join()
-            print("Timeout reached. Terminating program.")
+            print("\x1B[1;31mTimeout reached. Terminating program.")
             exit(1)
         except OSError as e:
-            print("Error ", e.errno, e.strerror)
+            print("\x1B[1;31mError ", e.errno, e.strerror)
             exit(1)
 
     print("Server shutting down")
