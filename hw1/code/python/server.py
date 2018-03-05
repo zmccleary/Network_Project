@@ -126,7 +126,7 @@ def parse_args(argc, argv):
     global verbose 
     flags = 0
     if argc < 2:
-        print(usage, arg_errormsg)
+        print("\x1B[1;31m"+usage, arg_errormsg)
         exit(1)
 
     if sys.argv[1] == "-h":
@@ -138,7 +138,7 @@ def parse_args(argc, argv):
         verbose = True
 
     if argc - flags < 4:
-        print(usage, arg_errormsg)
+        print("\x1B[1;31m" + usage, arg_errormsg)
         exit(1)
 
     port_num = int(argv[1 + flags])
@@ -220,9 +220,10 @@ def close_client(sock):
     global rsetsock
     global verbose
     if sock in rsetsock:
-        rsetsock.remove(sock)
         if verbose:
             print("\x1B[1;34mRemoved socket " + sock.fileno())
+        rsetsock.remove(sock)
+       
 
     sock.close()
 
