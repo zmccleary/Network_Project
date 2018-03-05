@@ -17,7 +17,8 @@ int main(int argc, char* argv[]){
     char * name = argv[1];
     printf("\x1B[36mYou are now chatting with %s:\n", name);
     if(argv[2] != NULL)
-        printf("\n>%s\n", argv[2]);
+        printf("\n>%s\n>", argv[2]);
+    fflush(stdout);
     rs_buf * buf = (rs_buf *)malloc(sizeof(rs_buf));
     init_rsbuf(buf, 2048);
     //Loop over reading stdin

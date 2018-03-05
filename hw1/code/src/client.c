@@ -69,6 +69,7 @@ top:
         }
         else if (state == MESSAGE_TO){
             //Handle message to
+            return 0;
         }
         else if (state == LOGOUT){
             //Handle logoff :: do nothing
