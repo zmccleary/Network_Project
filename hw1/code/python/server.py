@@ -74,11 +74,18 @@ def parse_command(input_src):
 
 
 def builtin_exec(command, sock):
+    global verbose
     if command == '/users':
+        if verbose:
+            print("\x1B[1;34m/users")
         list_users()
     elif command == '/help':
+        if verbose:
+            print("\x1B[1;34m/help")
         help()
     elif command == '/shutdown':
+        if verbose:
+            print("\x1B[1;34m/shutdown")
         server_shutdown(sock)
     else:
         print("\x1B[1;31m",command, "is not a command")
@@ -155,6 +162,7 @@ def handle_bye(sock):
     # get the name of the person logging off and delete the socket
     # global byelock
     # byelock.acquire()
+    global verbose
     logoff = get_name_by_sock(sock)
 
     # send EYB and close socket, delete from user dict
@@ -166,19 +174,26 @@ def handle_bye(sock):
     for name in users.list():
         socksnd = users.get(name)[1]
         sndmsg = 'UOFF ' + logoff + "\r\n\r\n"
+        if verbose:
+            print("\x1B[1;34mDest: " + name,sndmsg)
         socksnd.send(sndmsg.encode())
     # byelock.release()
 
 
 def handle_listu(sock):
+    global verbose
     message = "UTSIL " + " ".join(users.list()) + "\r\n\r\n"
+    if verbose:
+        print("\x1B[1;34m" +message)
     sock.send(message.encode())
 
 
 def handle_to(sock: socket, message: str):
     # get the name of the client who this socket belongs to
+    global verbose
     fromname = get_name_by_sock(sock)
-    print("From:", fromname)
+    if verbose:
+        print("\x1B[1;34mFrom:", fromname)
 
     # Decode the message from <dest> <mesg> and send it to the dest client
     splitmessage = message.split(" ", maxsplit=1)
@@ -195,46 +210,69 @@ def handle_to(sock: socket, message: str):
     frommsg = "FROM " + fromname + " " + splitmessage[1]
     while "\r\n\r\n" not in frommsg:
         frommsg = frommsg + (sock.recv(32)).decode("utf-8")
+    if verbose:
+        print("\x1B[1;34m" + frommsg)
     destsock.send(frommsg.encode())
     return 0
 
 
 def close_client(sock):
     global rsetsock
+    global verbose
     if sock in rsetsock:
         rsetsock.remove(sock)
+        if verbose:
+            print("\x1B[1;34mRemoved socket " + sock.fileno())
+
     sock.close()
 
 
 def login(addr, sock):
+    global verbose
     init = sock.recv(32).decode('utf-8')
+    if verbose:
+        print("\x1B[1;34m" + init)
     if init == 'ME2U\r\n\r\n':
         sock.send('U2EM\r\n\r\n'.encode())
+        if verbose:
+            print('\x1B[1;34mU2EM\r\n\r\n')
         init2 = sock.recv(32).decode('utf-8')
+
         i2l = init2.split(" ")
         if i2l[0] == 'IAM':
             if i2l[1].endswith("\r\n\r\n"):
                 name = i2l[1].rstrip("\r\n")
                 if len(name) <= 10:
                     if users.get(name) is None:
+                        if verbose:
+                            print("\x1B[1;34m" + i2l[0] +" " +name)
                         users.put(name, (addr, sock))
                         sock.send("MAI\r\n\r\n".encode())
+                        if verbose:
+                            print("\x1B[1;34m"+"MAI")
                         motdstring = "MOTD " + motd + "\r\n\r\n"
+                        if verbose:
+                            print("\x1B[1;34m" + "MOTD " + motd)
                         sock.send(motdstring.encode())
                         global rsetsock
                         rsetsock.append(sock)
                         return 0
                     else:
                         sock.send("ETAKEN\r\n\r\n".encode())
+                        if verbose:
+                            print("\x1B[1;34m" + "ETAKEN")
     sock.close()
     return 0
 
 
 def handle_morf(sock, message: str):
+    global verbose
     fromname = get_name_by_sock(sock)
     toname = message.rstrip("\r\n")
     destsock = users.get(toname)[1]
     ot = "OT " + fromname + "\r\n\r\n"
+    if verbose:
+        print("\x1B[1;34m" + ot)
     destsock.send(ot.encode())
     return 0
 
