@@ -2,6 +2,7 @@ from socket import *
 import sys
 import os
 from threading import Thread
+from threading import Lock
 from concurrent_dict import conc_dict
 from queue import Queue
 from user import User
@@ -9,9 +10,11 @@ from select import select
 
 from job import Job
 
+byelock = Lock()
 users = conc_dict()
 shutdown = False
 work_queue = Queue()
+rsetsock = []
 port_num = 0
 num_workers = 0
 motd = ""
@@ -101,7 +104,7 @@ def server_shutdown(sock):
     for key in users.list():
         tup = users.get(key)
         usock = tup[1]
-        usock.close()
+        close_client(usock)
         # print(usock)
         # usock.shutdown(SHUT_RDWR)
 
@@ -145,18 +148,21 @@ def get_name_by_sock(sock):
 
 def handle_bye(sock):
     # get the name of the person logging off and delete the socket
+    # global byelock
+    # byelock.acquire()
     logoff = get_name_by_sock(sock)
 
     # send EYB and close socket, delete from user dict
     sock.send("EYB\r\n\r\n".encode())
-    sock.close()
     users.delete(logoff)
+    close_client(sock)
 
     # send UOFF messages to every other client
     for name in users.list():
         socksnd = users.get(name)[1]
         sndmsg = 'UOFF ' + logoff + "\r\n\r\n"
         socksnd.send(sndmsg.encode())
+    # byelock.release()
 
 
 def handle_listu(sock):
@@ -189,6 +195,9 @@ def handle_to(sock: socket, message: str):
 
 
 def close_client(sock):
+    global rsetsock
+    if sock in rsetsock:
+        rsetsock.remove(sock)
     sock.close()
 
 
@@ -207,11 +216,12 @@ def login(addr, sock):
                         sock.send("MAI\r\n\r\n".encode())
                         motdstring = "MOTD " + motd + "\r\n\r\n"
                         sock.send(motdstring.encode())
+                        global rsetsock
+                        rsetsock.append(sock)
                         return 0
                     else:
                         sock.send("ETAKEN\r\n\r\n".encode())
-
-    close_client(sock)
+    sock.close()
     return 0
 
 
@@ -229,22 +239,34 @@ def client_read(info, connection):
     # info = client address
     # connection = client socket
     # users are keyed by connection. Verify that destination of message is a user, else EDNE
-    message = (connection.recv(32)).decode()
+    if get_name_by_sock(connection) is None:
+        return None
+    try:
+        message = (connection.recv(32, MSG_DONTWAIT)).decode()
+    except BlockingIOError:
+        return 0
+    except OSError:
+        return None
     header = message.split(sep=" ", maxsplit=1)
     if header[0] == "LISTU\r\n\r\n":
         #send UTSIL + list of users + \r\n\r\n to client
         handle_listu(connection)
+
     elif header[0] == "TO":
         # apply messaging protocol.
         # identify receiver in users dictionary.
         # send FROM <sender> <message>\r\n\r\n if recipient exists and message is not garbage
         print("TO")
         handle_to(connection, header[1])
+
     elif header[0] == "BYE\r\n\r\n":
         # ack with EYB\r\n\r\n and send UOFF <username>\r\n\r\n to rest of the users online
         handle_bye(connection)
+        return None
     elif header[0] == "MORF":
+
         handle_morf(connection, header[1])
+
     elif header[0] != "":
         # message does not have a valid header and is garbage
         print("Protocol error:", header[0], "is not a recognized client command")
@@ -252,13 +274,16 @@ def client_read(info, connection):
         if name is not None:
             users.delete(name)
             connection.close()
+        return None
 
-    return None
+
+    return 0
 
 
 def worker_exec(i, socket):
     # worker threads will execute this when started
     print("Spawned worker thread #", i)
+    global byelock
     while True:
         job = work_queue.get()
 
@@ -269,7 +294,14 @@ def worker_exec(i, socket):
             login(job.info, job.connection)
 
         elif job.type == 'CLIENT':
-            client_read(job.info, job.connection)
+            global rsetsock
+            if job.connection in rsetsock:
+                byelock.acquire()
+                rsetsock.remove(job.connection)
+                if client_read(job.info, job.connection) is not None:
+                    rsetsock.append(job.connection)
+                byelock.release()
+
         else:
             print("error")
 
@@ -306,12 +338,12 @@ if __name__ == '__main__':
     # rsockset = []
     while not shutdown:  # change this later
         try:
-            rset = [sock, sys.stdin] # select listening socket or stdin to read
+            rset = [sock, sys.stdin] + rsetsock# select listening socket or stdin to read
             #wset = [sock]  # will be filled later
             eset = [sock]  # not defined yet
-            for name in users.list():
+            # for name in users.list():
                # print(name)
-                rset.append(users.get(name)[1])
+                # rset.append(users.get(name)[1])
             tout = 1
             r_ready,w_ready, e_ready = select(rset, [],eset, 0)
             # print("Ready for I/O")
@@ -320,7 +352,7 @@ if __name__ == '__main__':
                     connection = sock.accept()
                     new_job = Job("LOGIN", connection[1], connection[0])
                     work_queue.put(new_job)
-                    rset.append(connection[0])  # we will be able to read from the connection
+                    # rsetsock.append(connection[0])  # we will be able to read from the connection
 
                     # WE dont need to multiplex over writing, just write to the socket
                     # wset.append(connection[0]) #we will also write to the connection
