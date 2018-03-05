@@ -124,13 +124,15 @@ def parse_args(argc, argv):
     if sys.argv[1] == '-v':
         flags = 1
 
-    if argc - flags != 4:
+    if argc - flags < 4:
         print(usage, arg_errormsg)
         exit(1)
 
     port_num = int(argv[1 + flags])
     num_workers = int(argv[2 + flags])
-    motd = (argv[3 + flags])
+    motd = ""
+    for arg in argv[3+flags:]:
+        motd += (arg) + " "
     return (port_num, num_workers, motd)
 
 
@@ -229,6 +231,9 @@ def client_read(info, connection):
     # info = client address
     # connection = client socket
     # users are keyed by connection. Verify that destination of message is a user, else EDNE
+    if get_name_by_sock(connection) is None:
+        return None
+
     message = (connection.recv(32)).decode()
     header = message.split(sep=" ", maxsplit=1)
     if header[0] == "LISTU\r\n\r\n":
