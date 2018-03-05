@@ -54,6 +54,8 @@ top:
     else if (strcmp(token, "EDNE") == 0){
         printf("User does not exist.\n");
         flush_rsbuf(buf);
+        free(bufcopy);
+        return -1;
     }
     else{
         if(state == LOGIN1 || state == LOGIN2){

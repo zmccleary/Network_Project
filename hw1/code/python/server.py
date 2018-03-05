@@ -140,7 +140,7 @@ def get_name_by_sock(sock):
             return name
 
     else:
-        return False
+        return ""
 
 
 def handle_bye(sock):
@@ -167,22 +167,25 @@ def handle_listu(sock):
 def handle_to(sock: socket, message: str):
     # get the name of the client who this socket belongs to
     fromname = get_name_by_sock(sock)
+    print("From:", fromname)
 
     # Decode the message from <dest> <mesg> and send it to the dest client
     splitmessage = message.split(" ", maxsplit=1)
+    print("Splitmessage:", splitmessage)
     toname = splitmessage[0]
-    destsock = users.get(toname)[1]
-    if destsock is None:
+    if(users.get(toname) != None):
+        destsock = users.get(toname)[1]
+    else:
         edne = "EDNE " + toname + "\r\n\r\n"
         sock.send(edne.encode())
         return 0
-    else:
-        # read the whole mesage and write to the dest
-        frommsg = "FROM " + fromname + " " + splitmessage[1]
-        while "\r\n\r\n" not in frommsg:
-            frommsg = frommsg + sock.recv(32).decode("utf-8")
-        destsock.send(frommsg.encode())
-        return 0
+    
+    # read the whole mesage and write to the dest
+    frommsg = "FROM " + fromname + " " + splitmessage[1]
+    while "\r\n\r\n" not in frommsg:
+        frommsg = frommsg + (sock.recv(32)).decode("utf-8")
+    destsock.send(frommsg.encode())
+    return 0
 
 
 def close_client(sock):
@@ -235,6 +238,7 @@ def client_read(info, connection):
         # apply messaging protocol.
         # identify receiver in users dictionary.
         # send FROM <sender> <message>\r\n\r\n if recipient exists and message is not garbage
+        print("TO")
         handle_to(connection, header[1])
     elif header[0] == "BYE\r\n\r\n":
         # ack with EYB\r\n\r\n and send UOFF <username>\r\n\r\n to rest of the users online
@@ -303,12 +307,13 @@ if __name__ == '__main__':
     while not shutdown:  # change this later
         try:
             rset = [sock, sys.stdin] # select listening socket or stdin to read
-            wset = [sock]  # will be filled later
+            #wset = [sock]  # will be filled later
             eset = [sock]  # not defined yet
             for name in users.list():
+               # print(name)
                 rset.append(users.get(name)[1])
             tout = 1
-            r_ready, w_ready, e_ready = select(rset, wset, eset, tout)
+            r_ready,w_ready, e_ready = select(rset, [],eset, 0)
             # print("Ready for I/O")
             for r in r_ready:
                 if r == sock:

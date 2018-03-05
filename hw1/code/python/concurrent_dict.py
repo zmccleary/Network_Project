@@ -24,7 +24,7 @@ class conc_dict:
     
     def __init__(self):
         self.lock = Semaphore()
-        self.num_readers = Semaphore(0)
+        self.num_readers = 0
         self.read_sem = Semaphore()
         self.data = {}
 
@@ -35,7 +35,7 @@ class conc_dict:
 
     def get(self, key):
         self.read_sem.acquire() #prevent other readers from locking when updating num_readers
-        self.num_readers.release() #increment num_readers
+        self.num_readers += 1 #increment num_readers
         
         if self.num_readers == 1: #if first reader then grab the dictionary lock
             self.lock.acquire()
@@ -46,7 +46,7 @@ class conc_dict:
         else:
             returnValue = None
         
-        self.num_readers.acquire() #Decrement num_readers after reading from dict
+        self.num_readers -= 1 #Decrement num_readers after reading from dict
         
         if self.num_readers == 0: #if last reader, then release the resource lock for other functions
             self.lock.release()

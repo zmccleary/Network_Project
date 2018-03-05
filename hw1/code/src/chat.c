@@ -52,6 +52,7 @@ void chat_init(int sockfd, rs_buf *buf, char * to, char * msg)
 
 int chat(int sockfd, rs_buf *buf, char * to, char * msg)
 {
+    int edne = 0;
     char * tomsg = (char *)calloc(buf->size, sizeof(char));
     char * tmg = strtok(msg, "\n");
     if(tmg == NULL)
@@ -62,9 +63,9 @@ int chat(int sockfd, rs_buf *buf, char * to, char * msg)
     }
     sprintf(tomsg, "TO %s %s\r\n\r\n", to, tmg);
     Write(sockfd, tomsg, strlen(tomsg));
-    handle_read(sockfd, buf, MESSAGE_TO);
+    edne = handle_read(sockfd, buf, MESSAGE_TO);
     free(tomsg);
-    if(strcmp(buf->buffer, "EDNE") == 0)
+    if(edne == -1)
         return -1;
     flush_rsbuf(buf);
     return 1;
